@@ -1,0 +1,29 @@
+# Retail CV Demo
+
+Browser-based object detection for an introductory retail showcase. The bundled app has four enabled classes—people, apples, bananas and oranges—and offline Camera / Demo modes. [Retail footage shortlist](docs/retail-video-options.html) surveys candidate scenes; it does not add those extra classes to the app.
+
+
+Static, browser-local COCO object detection. No API key, build, backend, or runtime CDN needed.
+
+## Run
+
+Run `python3 -m http.server 8000 --directory dist` and visit http://localhost:8000. Camera access requires localhost or HTTPS. Do not open index.html via file://.
+
+For another static host (including here.now), upload the contents of `dist`. Keep all paths together. The runtime, five model shards, video and images are bundled. Use HTTPS and serve sw.js with revalidation/no-cache. Wait for “Ready for offline use” before disconnecting, then reload once offline to confirm on the event device. Browser cache eviction can remove offline assets; a downloaded copy served on localhost is the most dependable event fallback.
+
+Camera mode has a flip button that requests the opposite facing camera, with another available camera as fallback. A device with only one camera keeps its current feed.
+
+## Configure
+
+Edit dist/config.js: each class has its COCO category ID, display label, color, image and confidence threshold. ENABLED chooses classes and ledger order. Add other COCO categories there if needed.
+
+The model is TensorFlow's SSD Lite MobileNet V2. TensorFlow.js 4.22.0 executes on WebGL only, with CPU forwarding disabled. There is no CPU inference fallback. Lightweight JavaScript postprocessing handles class filtering, NMS and tracking. Video fills the stage with a centered cover crop. Inference uses the exact visible crop, capped at 640 pixels on its longest side; only one inference runs at once, targeting at most 10 updates per second. Video plays independently. Tracks linger up to 450 ms through missed detections. DOM boxes interpolate positions.
+
+Demo mode offers Produce, Checkout, Conveyor and People stock footage and runs the same model as Camera. The conveyor close-up mainly contains packaged products outside the enabled classes, so low or zero counts can be expected. Fruit can be tested through Camera. All counts are model output, never scripted. Sources and media licenses are in dist/credits.html.
+
+## Validation and limits
+
+Source syntax, asset completeness and model shard sizes were checked. Physical GPU performance, webcam permissions, Safari behavior, and offline browser reload must be checked on the actual event device. This environment did not provide browser QA. A general-purpose pretrained detector can miss small fruit, occluded objects and unusual angles; use good lighting and hold fruit visibly apart.
+
+Model source: https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/model.json
+Runtime: https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js

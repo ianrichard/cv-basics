@@ -1,0 +1,11 @@
+.DS_Store
+*.log
+node_modules/
+
+# Local exploration and source archives
+/reference/
+
+# Local environment configuration
+.env
+.env.*
+!.env.example
