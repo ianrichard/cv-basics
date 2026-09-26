@@ -13,6 +13,16 @@ For another static host (including here.now), upload the contents of `dist`. Kee
 
 Camera mode has a flip button that requests the opposite facing camera, with another available camera as fallback. A device with only one camera keeps its current feed.
 
+## Deploy to Cloudflare Pages
+
+Install Node.js 22 or newer, then run `npm ci`. Sign in once with `npx wrangler login`.
+For the initial account setup, create the Pages project with `npx wrangler pages project create cv-basics --production-branch=main`.
+Publish the current local app with `npm run deploy`. This uploads only `dist/`, including the bundled model and videos; there is no build step or GitHub deployment workflow.
+Wrangler prints the deployment URL when it finishes. Credentials stay in Wrangler's local configuration, outside this repository.
+
+For local use, `npm start` serves the app at http://localhost:8000 (Python 3 required).
+The `reference/` folder contains local exploration material and is excluded from Git and deployment.
+
 ## Configure
 
 Edit dist/config.js: each class has its COCO category ID, display label, color, image and confidence threshold. ENABLED chooses classes and ledger order. Add other COCO categories there if needed.

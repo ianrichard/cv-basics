@@ -1,0 +1,13 @@
+{
+  "name": "cv-basics",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-local retail computer vision demo",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 127.0.0.1 --directory dist",
+    "deploy": "wrangler pages deploy dist --project-name=cv-basics --branch=main"
+  },
+  "devDependencies": {
+    "wrangler": "4.141.0"
+  }
+}
