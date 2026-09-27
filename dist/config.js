@@ -19,9 +19,9 @@ export const GROUPS = {
 // Sample presets are independent of the live camera filters.
 // Images are manual inspection samples, excluded from automatic video rotation.
 export const DEMOS = [
- {key:'heb-people',label:'People in Store',src:'media/heb-people.mp4',poster:'media/heb-people-poster.jpg',items:['person']},
- {key:'heb-produce',label:'Produce at Home',src:'media/heb-produce.mp4',poster:'media/heb-produce-poster.jpg',items:['apple','banana','orange']},
- {key:'add-banana',label:'Produce at Checkout',src:'media/add-banana.mp4',poster:'',items:['apple','banana','orange']},
- {key:'checkout-belt',label:'Checkout belt',src:'media/checkout-belt.mp4',poster:'',items:['apple','banana','orange']},
- {key:'curbside',label:'Curbside',src:'media/curbside.mp4',poster:'media/curbside-poster.jpg',items:['car','person']},
+ {key:'heb-people',title:'Crossing paths.',label:'People in Store',src:'media/heb-people.mp4',poster:'media/heb-people-poster.jpg',items:['person']},
+ {key:'heb-produce',title:'Fresh for later.',label:'Produce at Home',src:'media/heb-produce.mp4',poster:'media/heb-produce-poster.jpg',items:['apple','banana','orange']},
+ {key:'add-banana',title:'Checking out.',label:'Produce at Checkout',src:'media/add-banana.mp4',poster:'',items:['apple','banana','orange']},
+ {key:'checkout-belt',title:'Dinner in motion.',label:'Checkout belt',src:'media/checkout-belt.mp4',poster:'',items:['apple','banana','orange']},
+ {key:'curbside',title:'Heading home.',label:'Curbside',src:'media/curbside.mp4',poster:'media/curbside-poster.jpg',items:['car','person']},
 ];

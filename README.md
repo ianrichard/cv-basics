@@ -41,7 +41,9 @@ For the expo, start with one apple, two bananas and two oranges. Place them one 
 
 The bottom navigation is one segment: **Demos / Camera / Settings / About**, with icons above labels and a subtle lighter fill on the active tab, without border outlines. Settings and About replace the entire main presentation with a quick opacity fade. All settings are expanded. Video playback, inference and delayed frame copying pause in these views, then resume when returning to the source. Camera is retained while adjusting its settings. About explains sample footage, live on-device computation and how to try recognition.
 
-On mobile, the video sticks to the top inside an opaque wrapper with 24 px top/side padding. Both video-to-title and title-to-recognized-items gaps are 32 px. Navigation stays visible above the bottom safe area and fits 320 px screens. The status H1 has a larger .8em dot and a stable two-line minimum area with natural wrapping (“Looking for fruit” stays on one line at 320 px); it describes the active groups (Looking for fruit, Detecting people, Detecting people and cars). Between demo clips its text fades to blank without collapsing. Blue loading dots pulse inward, active green dots outward, and red error dots stay steady. Errors take priority over loading/transition/active states. Reduced-motion preferences disable fades and pulses.
+On mobile, the video sticks to the top inside an opaque wrapper with 24 px top/side padding. Both video-to-title and title-to-recognized-items gaps are 32 px. Navigation stays visible above the bottom safe area and fits 320 px screens. The status H1 has a larger .8em dot and a stable one-line minimum area. Short story titles add context: Crossing paths.; Fresh for later.; Checking out.; Dinner in motion.; Heading home. Camera uses Searching for life. All six fit on one line at 320 px. Between demo clips its text fades to blank without collapsing. Blue loading dots pulse inward, active green dots outward, and red error dots stay steady. Errors take priority over loading/transition/active states. Reduced-motion preferences disable fades and pulses.
+
+The favicon and installable app icon use Ian’s supplied artwork, bundled at 32, 180, 192 and 512 px with source metadata stripped.
 
 Fruit, person and car recognition rows use photographic images on white tiles. Person/car thumbnails were supplied by Ian through Drive Temp, resized to at most 256 px with metadata stripped. Lucide SVGs remain only for interface controls.
 
@@ -53,7 +55,7 @@ Open **Settings** for scene selection, detection filters, auto-rotation and **Di
 
 Playback delay holds back displayed video/camera frames while inference keeps reading the original feed. Playback speed stays at 1×. At 0.00 s there is no buffering; enabling it uses a bounded canvas queue (at most 18 queued frames, at most 30 captures/sec, up to 1280×720), adding rendering work. Source changes clear the queue; clip endings drain the delayed tail before switching or restarting. The slider is a manual alignment adjustment, not a promise of exact frame synchronization. Image inference stays on demand.
 
-Loading, detection and error text appear only in the H1 beside the colored dot. Loading labels include Loading Computer Vision, Loading Demo and Allow Camera Access; active titles describe the enabled detection groups. Errors use the same heading, with a steady red dot and a sad emoji. There is no text overlay on the video canvas; the retry button appears beneath the status label when needed.
+Loading, detection and error text appear only in the H1 beside the colored dot. Loading labels include Loading Computer Vision, Loading Demo and Allow Camera Access; active titles add scene context without repeating the recognition labels. Errors use the same heading, with a steady red dot and a sad emoji. There is no text overlay on the video canvas; the retry button appears beneath the status label when needed.
 
 ## Validation and limits
 

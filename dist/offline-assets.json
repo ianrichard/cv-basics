@@ -1,13 +1,12 @@
 [
   "./",
-  "index.html?v=23",
-  "config.js?v=23",
-  "icon.svg",
-  "app.js?v=24",
-  "manifest.webmanifest",
+  "index.html?v=25",
+  "config.js?v=25",
+  "app.js?v=25",
+  "manifest.webmanifest?v=25",
   "credits.html?v=23",
   "geometry.js",
-  "style.css?v=24",
+  "style.css?v=25",
   "model/model.json",
   "model/group1-shard1of5",
   "model/group1-shard2of5",
@@ -29,5 +28,9 @@
   "playback-delay.js",
   "vendor/lucide-LICENSE.txt",
   "media/person.png",
-  "media/car.png"
+  "media/car.png",
+  "icon-32.png",
+  "icon-180.png",
+  "icon-192.png",
+  "icon-512.png"
 ]
