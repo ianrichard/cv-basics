@@ -7,8 +7,8 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
 - Latest app changes: remove stale detection echoes, shorten linger, allow lower-confidence continuation of existing tracks, confirm new people across two detections, and use subtle white box fills with red people outlines. Zero-count rows remain at 25% opacity.
-- Previous immutable deployment: https://661436d6.cv-basics.pages.dev/ (app commit `c396e13`); tracking update is ready to deploy.
-- Publish tracking changes with `npm run deploy`, then verify the live app.
+- Corresponding immutable deployment: https://dd099921.cv-basics.pages.dev/ (app commit `08f09c7`).
+- Published with `npm run deploy`. Verified deployed live detection, red people outlines and 5% white fill. Original expo fruit still reached 1/2/2 locally; the real supermarket demo also ran successfully.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
