@@ -7,8 +7,8 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
 - Latest app change: zero-count item rows fade to 25% opacity, returning to full opacity for positive counts over 250 ms. Reduced-motion preferences disable the transition.
-- Previous immutable deployment: https://87fd803c.cv-basics.pages.dev/; this update adds the two new H-E-B clips and changes empty rows to 25%.
-- Local browser checks confirmed 25% opacity at zero, full opacity at positive counts and live detection on both new H-E-B clips. Publish this update with `npm run deploy`.
+- Corresponding immutable deployment: https://661436d6.cv-basics.pages.dev/ (app commit `c396e13`).
+- Deployed with `npm run deploy`. Local and deployed browser checks confirmed 25% opacity at zero, the 250 ms transition and live detection on both new H-E-B clips.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
