@@ -31,6 +31,11 @@ The app also includes posters and four thumbnails in `dist/media/`. Exact titles
 
 `dist/media/checkout-belt.mp4` and `dist/media/fruit-display.mp4` are the original 10-second, 1280×720 Gemini-generated videos supplied by Ian Smith. The source files remain in the Git-ignored `reference/` folder.
 
+Two additional 10-second, 1280×720 Gemini clips were copied unchanged from Google Drive Temp:
+
+- `dist/media/add-banana.mp4`: `gemini_generated_video_6F23B4FE.MP4` — a banana is placed beside an apple and orange.
+- `dist/media/remove-orange.mp4`: `gemini_generated_video_D06CC2AD.MP4` — an orange is removed, leaving an apple and banana.
+
 ## Current ledger images
 
 The product images below were supplied by Ian Smith and downloaded unchanged at 360×360 from H-E-B. They are bundled locally for offline use.

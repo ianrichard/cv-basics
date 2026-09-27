@@ -31,7 +31,7 @@ Edit dist/config.js: each class has its COCO category ID, display label, color, 
 
 The model is TensorFlow's SSD Lite MobileNet V2. TensorFlow.js 4.22.0 uses the WebGL backend with its default handling of small CPU helper operations. There is no full CPU inference fallback. Lightweight JavaScript postprocessing handles class filtering, NMS and tracking. Video fills the stage with a centered cover crop. Inference uses the exact visible crop, capped at 640 pixels on its longest side; only one inference runs at once, targeting at most 20 updates per second. Video plays independently. Tracks linger up to 450 ms through missed detections. DOM boxes interpolate positions over 50 ms.
 
-Demo mode starts with the Gemini-generated Checkout belt clip, with Fruit display and the original Produce, Checkout, Conveyor and People stock footage also available. All clips run the same model as Camera. The conveyor close-up mainly contains packaged products outside the enabled classes, so low or zero counts can be expected. Fruit can be tested through Camera. All counts are model output, never scripted. Sources and media licenses are in [dist/credits.html](dist/credits.html).
+Demo mode starts with the Gemini-generated Add banana clip. Remove orange, Checkout belt, Fruit display and the original Produce, Checkout, Conveyor and People stock footage are also available. All clips run the same model as Camera. The conveyor close-up mainly contains packaged products outside the enabled classes, so low or zero counts can be expected. Fruit can be tested through Camera. All counts are model output, never scripted. Sources and media licenses are in [dist/credits.html](dist/credits.html).
 
 ## Validation and limits
 
