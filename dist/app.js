@@ -38,7 +38,7 @@ for(const [key,group] of Object.entries(GROUPS)){
 function configureScene(){
  activeKeys=[...(mode==='camera'?cameraFilters:demoFilters.get(selectedDemo))];
  for(const row of rows.children)row.hidden=!activeKeys.includes(row.dataset.key);
- clipSelector.hidden=mode!=='demo';document.querySelector('#auto-rotate-option').hidden=mode!=='demo'||isImage();
+ document.querySelector('#demo-options').hidden=mode!=='demo';document.querySelector('#auto-rotate-option').hidden=mode!=='demo'||isImage();
  video.loop=mode==='demo'&&!isImage()&&!autoRotate.checked&&!playback.seconds;
  for(const button of clipSelector.children)button.setAttribute('aria-pressed',String(button.dataset.clip===selectedDemo));
  for(const label of detectionOptions.querySelectorAll('label')){
@@ -47,7 +47,7 @@ function configureScene(){
  }
 }
 // One text node, one pending destination: higher-priority state always wins at swap time.
-let desiredStatus={text:'Downloading vision superpowers',state:'loading'},statusFading=false;
+let desiredStatus={text:'Loading Computer Vision',state:'loading'},statusFading=false;
 function status(text,state='loading'){
  desiredStatus={text,state};
  if(statusFading)return;
@@ -63,17 +63,17 @@ let lastPresentation='';
 function refreshStatus(){
  let text,state='loading',canRetry=false;
  // Model failure > detection failure > source failure > loading > active processing.
- if(modelState==='error'){text='Couldn’t load vision superpowers';state='error';canRetry=true}
- else if(failed){text='Detection unavailable';state='error';canRetry=true}
+ if(modelState==='error'){text='Model didn’t load 😕';state='error';canRetry=true}
+ else if(failed){text='Detection stopped 😕';state='error';canRetry=true}
  else if(sourceState==='error'){text=sourceError;state='error';canRetry=true}
- else if(modelState!=='ready'){text=modelState==='downloading'?'Downloading vision superpowers':'Preparing vision superpowers'}
- else if(sourceState==='permission')text='Waiting for camera permission';
- else if(sourceState==='loading')text=mode==='camera'?'Starting camera':`Loading sample ${sampleKind()}`;
+ else if(modelState!=='ready'){text='Loading Computer Vision'}
+ else if(sourceState==='permission')text='Allow Camera Access';
+ else if(sourceState==='loading')text=mode==='camera'?'Loading Camera':'Loading Demo';
  else if(!activeKeys.length){text='Select items to detect';state='idle'}
- else if(isImage()&&!document.hidden){text=imageAnalyzed?'Sample image analyzed':'Analyzing sample image';state=imageAnalyzed?'complete':'loading'}
+ else if(isImage()&&!document.hidden){text=imageAnalyzed?'Detected':'Loading Demo';state=imageAnalyzed?'complete':'loading'}
  else if(document.hidden||(video.paused&&!(video.ended&&playback.seconds))){text='Detection paused';state='idle'}
- else if(video.readyState<2||video.seeking||!detectionActive)text=mode==='camera'?'Starting camera':`Loading sample ${sampleKind()}`;
- else{text=mode==='camera'?'Detecting from camera':'Detecting in sample video';state='live'}
+ else if(video.readyState<2||video.seeking||!detectionActive)text=mode==='camera'?'Loading Camera':'Loading Demo';
+ else{text='Detecting';state='live'}
  const presentation=JSON.stringify([text,state,canRetry]);
  if(presentation===lastPresentation)return;lastPresentation=presentation;
  status(text,state);
@@ -150,7 +150,7 @@ async function source(next, switching=false, clipKey=selectedDemo){
    const settings=stream.getVideoTracks()[0].getSettings();activeDeviceId=settings.deviceId;facing=settings.facingMode||facing;
    cameraDevices=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
    if(token!==generation)return;
-   stream.getVideoTracks()[0].addEventListener('ended',()=>{if(token===generation){ready=false;sourceState='error';sourceError='Camera unavailable';detectionActive=false;clear();refreshStatus()}});
+   stream.getVideoTracks()[0].addEventListener('ended',()=>{if(token===generation){ready=false;sourceState='error';sourceError='Camera unavailable 😕';detectionActive=false;clear();refreshStatus()}});
   }else if(isImage()){
    const clip=DEMOS.find(d=>d.key===selectedDemo);
    sampleImage.alt=clip.label;sampleImage.src=clip.src;await sampleImage.decode();
@@ -163,7 +163,7 @@ async function source(next, switching=false, clipKey=selectedDemo){
   requestAnimationFrame(()=>{if(token===generation)picture.classList.remove('fading')});refreshStatus();
  }catch(e){
   if(token!==generation)return;picture.classList.remove('fading');flip.disabled=cameraDevices.length<2;sourceState='error';ready=false;
-  sourceError=next!=='camera'?`Couldn’t load sample ${sampleKind()}`:e.name==='NotAllowedError'?'Camera permission declined':e.name==='NotFoundError'?'No camera detected':'Camera unavailable';
+  sourceError=next!=='camera'?`Sample ${sampleKind()} didn’t load 😕`:e.name==='NotAllowedError'?'Camera access declined 😕':e.name==='NotFoundError'?'No camera detected 😕':'Camera unavailable 😕';
   clear();refreshStatus();console.error(e);
  }
 }
@@ -207,8 +207,16 @@ autoRotate.addEventListener('change',()=>{configureScene();if(video.ended)finish
 video.addEventListener('ended',finishPlayback);
 video.addEventListener('seeking',()=>{if(isImage())return;playback.reset();viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
 for(const event of ['pause','playing','waiting','seeked'])video.addEventListener(event,()=>{if(isImage())return;if(event==='waiting')detectionActive=false;refreshStatus()});
-video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Couldn’t load sample video';detectionActive=false;clear();refreshStatus()}});
+video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Sample video didn’t load 😕';detectionActive=false;clear();refreshStatus()}});
 for(const key of ['camera','demo'])document.querySelector('#'+key).addEventListener('click',()=>source(key));
+const settings=document.querySelector('#settings');
+document.querySelector('#open-settings').addEventListener('click',()=>{settings.showModal();document.body.classList.add('settings-open')});
+document.querySelector('#close-settings').addEventListener('click',()=>settings.close());
+settings.addEventListener('close',()=>document.body.classList.remove('settings-open'));
+let backdropPress=false;
+const outsideSettings=event=>{const r=settings.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom};
+settings.addEventListener('pointerdown',event=>{backdropPress=outsideSettings(event)});
+settings.addEventListener('pointerup',event=>{if(backdropPress&&outsideSettings(event))settings.close();backdropPress=false});
 retry.addEventListener('click',()=>modelState==='error'?location.reload():source(mode));
 document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear();detectionActive=false}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
 window.addEventListener('pagehide',()=>{clearTimeout(endedTimer);playback.reset();generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});

@@ -6,7 +6,7 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest direction: 8 FPS and 40% overlay background are the chosen defaults. Glow stays off. Optional playback delay provides timing adjustment; all loading/error/detection text lives only in the single dot label. Roomier mobile padding and temporary tuning controls remain. The curbside photo is replaced by a Cars + People video in the automatic playlist; generic image support remains. Simple animated status, sticky mobile video and below-screen debugging remain. Detection groups are per-sample presets; live camera independently defaults to People + Produce. Cars is enabled for Curbside and off in the other samples. Auto-rotate is checked by default; uncheck to loop the current clip. Recognition remains presence-only.
+- Latest direction: the H1 is the single animated status, with its colored dot. Settings live in a native dialog: right drawer on desktop, bottom sheet on phones, with every section expanded. Only Camera / Demo and the flat Lucide sliders icon remain at the bottom of the presentation. Five scenes: People in Store, Produce at Home, Produce at Checkout, Checkout belt and Curbside. Remove orange is retired. Defaults: 8 FPS, 40% overlay fill, 0.20 s playback delay, glow off. Mobile sticky video has an opaque padded wrapper. App icon direction awaits Ian's input: suggested white detection corners + green center dot on the dark app background; current purple icon intentionally unchanged.
 - Current immutable deployment: https://bb508c5a.cv-basics.pages.dev/ (app commit `3aef5be`). Published with `npm run deploy`; production app, playback-delay module, styles and service-worker assets match the working tree. Production browser verification confirmed 8 FPS, 40% overlay opacity, the playback-delay control, a single status label and no canvas status text or console errors.
 - Publish with `npm run deploy`. Status/mobile controls checked locally at desktop, 390 px and 320 px widths: active detection, no overflow, debug controls below the first mobile viewport, sticky video, per-sample filter retention and independent camera controls. Auto-rotation advanced through clips; disabling it enabled native single-video looping. Deliberately missing model/video assets confirmed error priority and a steady red dot. No console errors during normal playback. Physical camera capture remains to be checked on the event device.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
@@ -19,14 +19,13 @@ Stability and performance first, then curation and simplification. Avoid new fea
 
 `dist/` contains source and deployable files. TensorFlow.js 4.22.0 and SSD Lite MobileNet V2 are bundled locally. There are no API keys, backend or runtime CDN dependencies.
 
-Six demos now form an automatic repeating playlist:
+Five demos now form an automatic repeating playlist:
 
-1. H-E-B people — default; Gemini checkout scene, people counting only.
-2. H-E-B produce — Gemini fruit-on-table scene.
-3. Add banana — Gemini clip.
-4. Remove orange — Gemini clip.
-5. Checkout belt — Gemini clip, now half speed in the source (about 20 seconds).
-6. Curbside — Gemini Cars + People clip, replacing the static photo (6.83 seconds).
+1. People in Store — default; Gemini checkout scene, people counting only.
+2. Produce at Home — Gemini fruit-on-table scene.
+3. Produce at Checkout — Gemini clip (formerly Add banana).
+4. Checkout belt — Gemini clip, now half speed in the source (about 20 seconds).
+5. Curbside — Gemini Cars + People clip, replacing the static photo (6.83 seconds).
 
 Expo fruit, Supermarket and Fruit display were removed from the app and offline cache at Ian's request. Their media and posters are preserved locally under ignored `reference/retired-sep27/`.
 
@@ -34,9 +33,25 @@ At each clip's end the video and boxes fade out over 320 ms, the next clip loads
 
 Each entry in `dist/config.js` has its own class list. Fruit demos recognize apples, bananas and oranges only; people mode recognizes people. The sidebar now shows presence rather than counts: images and labels brighten to full opacity for confirmed detections and dim to 25% otherwise, over 500 ms. Images are 72 px desktop / 80 px wide / 64 px small, and labels are 23–29 px. Numeric counts, total, row dividers and scene captions are removed to keep the summit presentation focused on recognition. Accessible item labels also indicate detected/not currently detected. Camera mode offers independent Produce / People checkboxes and changes class filters without reopening the camera. All recognition is model output, never scripted.
 
-New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v20` with 31 manifest entries, including both new clips and posters.
+New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v21` with 31 manifest entries, including both new clips and posters.
 
-The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Recognition-list fruit images are locally bundled H-E-B photos; the people icon is an original SVG.
+The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Recognition-list fruit images are locally bundled H-E-B photos; people and car icons are locally bundled Lucide SVGs.
+
+## September 27 presentation simplification (current)
+
+The single H1 now carries status text and the existing dot. Normal labels: Loading Computer Vision (download + warmup), Loading Demo, Detecting, Allow Camera Access, and Loading Camera during startup. Errors include Model didn’t load 😕, No camera detected 😕, Sample video didn’t load 😕, Camera access declined 😕, Camera unavailable 😕, and Detection stopped 😕. Existing paused/no-filter states and error priority remain accurate; no status text appears on the canvas. The status text inside H1 is the only live status region, with the existing 250 ms out/swap/250 ms in transition. Header-to-items spacing is 40 px desktop / 32 px mobile.
+
+All controls moved into an accessible native dialog, opened from a flat sliders icon beside the source segment. Desktop uses a right drawer; mobile uses a bottom sheet, max 85dvh. All sections are expanded, with internal scrolling. Native dialog handles focus containment and Escape; close button and backdrop clicks dismiss it, returning focus to Settings. Body scroll is locked only while open. Camera mode hides demo scene/rotation and Cars controls. No Tailwind or runtime icon library was introduced: shared CSS styles native controls, and the seven used Lucide SVGs are bundled inline or locally, with vendor/lucide-LICENSE.txt and credits.
+
+The mobile sticky wrapper has app-background fill and 24 px top/side padding plus a 16 px lower buffer; it prevents content showing above/around the video when scrolling. Desktop keeps one outer padding. Video shadows are very faint without the old 8 px spread. CSS was consolidated to remove layered overrides. Default playback delay is now 0.20 s; 8 FPS, 40% fill and glow off remain. Detector code is unchanged.
+
+Scene keys/media paths stay stable for existing links, but labels are People in Store, Produce at Home and Produce at Checkout. Remove orange's shipped MP4 is retired to ignored reference/retired-sep27/remove-orange.mp4 and removed from the manifest. Checkout belt and Curbside names are unchanged.
+
+Local checks passed for active detection, scene selection, default 0.20 s delay and 0.01 s slider steps, expanded settings, Escape/backdrop dismissal with focus restoration, desktop layout, 390 px mobile sheet and 320 px sticky scrolling with all five item rows enabled. No horizontal overflow or normal-playback console errors. A deliberately unavailable model confirmed the single red error heading, retry action and no canvas status text. Physical camera was not exercised.
+
+The app icon is still pending discussion: recommended four white detection corners around a green dot on the dark background. No new icon has been generated or shipped.
+
+Earlier dated sections below describe historical iterations; this section supersedes their layout, labels and defaults.
 
 ## September 27 timing and single-label status
 
@@ -129,7 +144,7 @@ All were made with the built-in image-generation tool. Each prompt text file inc
 - Automatic cycling with fades is now implemented using the existing `DEMOS` order. Per-clip trims and a combined montage are not implemented.
 - Expo fruit, Supermarket and Fruit display are retired at Ian’s request. Original/retired media remain local-only. Older solo-shopper footage also remains out of the lineup.
 - The new H-E-B people and produce videos are added; keep them available for curation. The real supermarket scene is now retired.
-- Curbside video is now in the six-clip playlist with Cars + People enabled. The static photo is retired locally. Camera mode deliberately excludes Cars.
+- Curbside video is now in the five-clip playlist with Cars + People enabled. The static photo is retired locally. Camera mode deliberately excludes Cars.
 
 ## Files and local-only references
 
