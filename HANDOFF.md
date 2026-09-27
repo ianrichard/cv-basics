@@ -6,8 +6,8 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest direction: one wide navigation segment in order Demos / Camera / Settings / About, with icons above labels. Settings/About replace the entire main view with a 250 ms fade out/in; no modal. Inference/buffering pause while these views are open. The H1 uses short story-led lines per scene, with a title-scale status dot. Demo transitions blank the text while preserving one line of height. Mobile gaps above/below the title are both 32 px. People/car rows now use Ian's supplied photographic cutouts. Defaults remain 8 FPS, 40% fill, 0.20 s delay, glow off. Ian’s supplied red/yellow detection-shape app icon is installed.
-- Current immutable deployment: https://c8375ad1.cv-basics.pages.dev/ (app commit `5178cec`). Published with `npm run deploy`; production app, config, styles, manifest, service worker and icon match the working tree. Live browser check confirmed “Crossing paths.” and active people recognition with no console errors.
+- Latest direction: one wide navigation segment in order Demos / Camera / Settings / About, with icons above labels. Settings/About replace the entire main view with a 250 ms fade out/in; no modal. Inference/buffering pause while these views are open. The H1 uses the approved five-part story, with a title-scale status dot. The playlist now runs Produce at Checkout → Checkout belt → People in Store → Curbside → Produce at Home. Demo transitions blank the text while preserving one line of height. Mobile gaps above/below the title are both 32 px. People/car rows now use Ian's supplied photographic cutouts. Defaults remain 8 FPS, 40% fill, 0.20 s delay, glow off. Ian’s supplied red/yellow detection-shape app icon is installed.
+- Current deployment: the approved narrative and reordered playlist are ready for publication; deployment verification follows.
 - Publish with `npm run deploy`. Status/mobile controls checked locally at desktop, 390 px and 320 px widths: active detection, no overflow, debug controls below the first mobile viewport, sticky video, per-sample filter retention and independent camera controls. Auto-rotation advanced through clips; disabling it enabled native single-video looping. Deliberately missing model/video assets confirmed error priority and a steady red dot. No console errors during normal playback. Physical camera capture remains to be checked on the event device.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
@@ -21,23 +21,31 @@ Stability and performance first, then curation and simplification. Avoid new fea
 
 Five demos now form an automatic repeating playlist:
 
-1. People in Store — default; Gemini checkout scene, people counting only.
-2. Produce at Home — Gemini fruit-on-table scene.
-3. Produce at Checkout — Gemini clip (formerly Add banana).
-4. Checkout belt — Gemini clip, now half speed in the source (about 20 seconds).
-5. Curbside — Gemini Cars + People clip, replacing the static photo (6.83 seconds).
+1. Produce at Checkout — default; “Computers with vision”.
+2. Checkout belt — “Scan produce on the move”; half-speed source, about 20 seconds.
+3. People in Store — “Notice our heart for people”; people detection only.
+4. Curbside — “And ways to serve better”; cars and people, 6.83 seconds.
+5. Produce at Home — “To deliver on our promises”; fruit-on-table scene.
 
 Expo fruit, Supermarket and Fruit display were removed from the app and offline cache at Ian's request. Their media and posters are preserved locally under ignored `reference/retired-sep27/`.
 
-At each clip's end the video and boxes fade out over 320 ms, the next clip loads with detections cleared, then fades in over 320 ms. The playlist wraps to H-E-B people. Manual selection switches gracefully and continues the playlist from the selected clip. Generation tokens cancel superseded transitions. Reduced-motion preferences disable fades. Camera mode now has independent People / Produce checkboxes, both on by default, and does not auto-cycle. No second decoder, framework or runtime dependency was added. Local browser spot checks confirmed automatic advancement and wraparound, opacity fading from 0 back to 1, rapid selection cancellation, and live detection resuming after transitions. Checkout belt reported 19.966667 seconds at playbackRate 1; console checks showed no errors.
+At each clip's end the video and boxes fade out over 320 ms, the next clip loads with detections cleared, then fades in over 320 ms. The playlist wraps from Produce at Home to Produce at Checkout. Manual selection switches gracefully and continues the playlist from the selected clip. Generation tokens cancel superseded transitions. Reduced-motion preferences disable fades. Camera mode now has independent People / Produce checkboxes, both on by default, and does not auto-cycle. No second decoder, framework or runtime dependency was added. Local browser spot checks confirmed automatic advancement and wraparound, opacity fading from 0 back to 1, rapid selection cancellation, and live detection resuming after transitions. Checkout belt reported 19.966667 seconds at playbackRate 1; console checks showed no errors.
 
 Each entry in `dist/config.js` has its own class list. Fruit demos recognize apples, bananas and oranges only; people mode recognizes people. The sidebar now shows presence rather than counts: images and labels brighten to full opacity for confirmed detections and dim to 25% otherwise, over 500 ms. Images are 72 px desktop / 80 px wide / 64 px small, and labels are 23–29 px. Numeric counts, total, row dividers and scene captions are removed to keep the summit presentation focused on recognition. Accessible item labels also indicate detected/not currently detected. Camera mode offers independent Produce / People checkboxes and changes class filters without reopening the camera. All recognition is model output, never scripted.
 
-New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v25` with 34 manifest entries, including both new clips and posters.
+New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v26` with 34 manifest entries, including both new clips and posters.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Recognition-list fruit images are locally bundled H-E-B photos; people and car images are supplied photographic cutouts.
 
-## September 27 story titles, balanced spacing and supplied icon (current)
+## September 27 approved narrative and sequence (current)
+
+Ian approved the exact five lines listed above. Preserve their wording and order. The opening now uses Produce at Checkout, followed by belt / people / curbside / home, then repeats. Existing sample keys and deep links still work. Camera retains “Searching for life.”
+
+The recognition column is an inline-size container; its status heading scales with available width (18–28 px, 7cqw). This keeps all five approved lines on one line at 320 px without shortening the copy. The title measures about 19 px at 320 px and 24 px at 390 px. Dot and gap scale with it. Loading and error text may wrap as needed; the one-line minimum and matching 32 px mobile gaps remain. Other page headings retain their existing size.
+
+Focused browser checks verified every story line at 320 px, 390 px and desktop presentation, scene selection, live detection and automatic wraparound from the closing home clip to the opening checkout clip. No detector or media changes; no test suite added. Offline cache v26 updates config and CSS.
+
+## September 27 story titles, balanced spacing and supplied icon (previous iteration)
 
 The active H1 follows each scene’s human context, independently of its detection filters: People in Store → “Crossing paths.”; Produce at Home → “Fresh for later.”; Produce at Checkout → “Checking out.”; Checkout belt → “Dinner in motion.”; Curbside → “Heading home.” Camera uses “Searching for life.” Item names remain in the recognition rows. Loading, pause, empty-filter and error states keep their existing priority and text.
 
