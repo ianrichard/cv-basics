@@ -7,13 +7,8 @@ export const ITEMS = {
 };
 export const ENABLED = ['apple', 'banana', 'orange', 'person'];
 
+// Each scene also selects the classes used by the live camera.
 export const DEMOS = [
- {key:'add-banana',label:'Add banana',src:'media/add-banana.mp4',poster:''},
- {key:'remove-orange',label:'Remove orange',src:'media/remove-orange.mp4',poster:''},
- {key:'checkout-belt',label:'Checkout belt',src:'media/checkout-belt.mp4',poster:''},
- {key:'fruit-display',label:'Fruit display',src:'media/fruit-display.mp4',poster:''},
- {key:'produce',label:'Produce',src:'media/produce.mp4',poster:'media/produce-poster.jpg'},
- {key:'checkout',label:'Checkout',src:'media/checkout.mp4',poster:'media/checkout-poster.jpg'},
- {key:'conveyor',label:'Conveyor',src:'media/conveyor.mp4',poster:'media/conveyor-poster.jpg'},
- {key:'people',label:'People',src:'media/demo.mp4',poster:'media/poster.jpg'}
+ {key:'expo-fruit',label:'Fruit',src:'media/expo-fruit.mp4',poster:'media/expo-fruit-poster.jpg',items:['apple','banana','orange']},
+ {key:'store-people',label:'People',src:'media/store-people.mp4',poster:'media/store-people-poster.jpg',items:['person']}
 ];
