@@ -1,13 +1,13 @@
 [
   "./",
   "index.html",
-  "config.js",
+  "config.js?v=12",
   "icon.svg",
   "app.js?v=11",
   "manifest.webmanifest",
-  "credits.html",
+  "credits.html?v=12",
   "geometry.js",
-  "style.css?v=11",
+  "style.css?v=12",
   "model/model.json",
   "model/group1-shard1of5",
   "model/group1-shard2of5",
@@ -26,5 +26,9 @@
   "media/add-banana.mp4",
   "media/remove-orange.mp4",
   "media/checkout-belt.mp4",
-  "media/fruit-display.mp4"
+  "media/fruit-display.mp4",
+  "media/heb-people.mp4",
+  "media/heb-people-poster.jpg",
+  "media/heb-produce.mp4",
+  "media/heb-produce-poster.jpg"
 ]

@@ -6,9 +6,9 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest app change: zero-count item rows fade to 50% opacity, returning to full opacity for positive counts over 250 ms. Reduced-motion preferences disable the transition.
-- Corresponding immutable deployment: https://87fd803c.cv-basics.pages.dev/
-- The opacity change is deployed. Local browser checks confirmed 50% opacity at zero and full opacity at positive counts; the detector still runs.
+- Latest app change: zero-count item rows fade to 25% opacity, returning to full opacity for positive counts over 250 ms. Reduced-motion preferences disable the transition.
+- Previous immutable deployment: https://87fd803c.cv-basics.pages.dev/; this update adds the two new H-E-B clips and changes empty rows to 25%.
+- Local browser checks confirmed 25% opacity at zero, full opacity at positive counts and live detection on both new H-E-B clips. Publish this update with `npm run deploy`.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
@@ -19,20 +19,26 @@ Stability and performance first, then curation and simplification. Avoid new fea
 
 `dist/` contains source and deployable files. TensorFlow.js 4.22.0 and SSD Lite MobileNet V2 are bundled locally. There are no API keys, backend or runtime CDN dependencies.
 
-Six separately selectable demos are currently live:
+Eight separately selectable demos are configured:
 
 1. Expo fruit — default; Ian's actual prop fruit on a counter, compressed from `IMG_2974.MOV`.
 2. Supermarket — real stock footage of shoppers, people counting only.
-3. Add banana — Gemini clip.
-4. Remove orange — Gemini clip.
-5. Checkout belt — Gemini clip.
-6. Fruit display — Gemini clip.
+3. H-E-B people — new Gemini checkout scene, people counting only.
+4. H-E-B produce — new Gemini fruit-on-table scene.
+5. Add banana — Gemini clip.
+6. Remove orange — Gemini clip.
+7. Checkout belt — Gemini clip.
+8. Fruit display — Gemini clip.
 
 Each entry in `dist/config.js` has its own class list and description. Fruit demos count apples, bananas and oranges only, preventing hands classified as people from affecting the fruit total. The supermarket scene counts detected people currently in view; it is not cumulative footfall or store occupancy. Camera mode offers Fruit / People and changes class filters without reopening the camera. All displayed counts are model output, never scripted.
 
-Keep existing model thresholds: fruit .48, people .60. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Tracking uses the original 450 ms linger; box interpolation is 50 ms. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v11` with 28 manifest entries. The app and stylesheet manifest URLs are versioned for this update.
+Keep existing model thresholds: fruit .48, people .60. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Tracking uses the original 450 ms linger; box interpolation is 50 ms. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v12` with 32 manifest entries, including both new clips and posters.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Ledger fruit images are locally bundled H-E-B photos; the people icon is an original SVG.
+
+## New H-E-B demos
+
+Sources supplied in Drive Temp: `gemini_generated_video_6989CEE7.mov` (people, 8.5 seconds) and `gemini_generated_video_7A4F5B78.mov` (produce, 4.2 seconds). Original copies and contact sheets stay in ignored `reference/new-demos/`. Compressed to silent 1280×720 H.264/yuv420p at 24 fps, CRF 23, fast start, with source metadata removed. People: 6,661,319 → 2,694,637 bytes (59.5% smaller). Produce: 3,556,905 → 828,721 bytes (76.7% smaller). Posters come from the compressed clips. Local browser checks observed three people near the start and 1 apple / 2 bananas / 1 orange after placement. Counts vary with occlusion and framing; thresholds and detector behavior were not changed.
 
 ## Actual expo fruit and observations
 
@@ -51,13 +57,13 @@ The latest seed and matching prompts are tracked here:
 - `docs/video-seeds/heb-staffed-checkout-v3.png`
 - `docs/video-seeds/heb-staffed-checkout-v3-prompt.txt`
 
-Use **v3** as the current seed. It puts the cashier behind a staffed register and conveyor, greeting the customer, whose cart contains separate unbagged groceries. The shopper with a red basket is farther back. The generated image is a fictional store scene, not documentation of an actual location. It has not been added to the app or converted into a video.
+Use **v3** as the current seed. It puts the cashier behind a staffed register and conveyor, greeting the customer, whose cart contains separate unbagged groceries. The shopper with a red basket is farther back. The generated image is a fictional store scene, not documentation of an actual location. The supplied H-E-B people video is now in the app; its exact seed lineage is unconfirmed.
 
 Earlier versions are retained in the same directory for context:
 
 - v1 (`heb-three-shoppers-v1`): user liked the framing but rejected the staged lineup.
 - v2 (`heb-checkout-candid-v2`): user liked the sparse candid arrangement but correctly flagged that the partner looked like he was showcasing self-checkout and the cart already had bagged groceries.
-- v3 (`heb-staffed-checkout-v3`): correction of those two retail-workflow errors; latest delivered image. Await user feedback / Gemini video.
+- v3 (`heb-staffed-checkout-v3`): correction of those two retail-workflow errors; latest delivered image. Ian subsequently supplied the H-E-B people clip.
 
 All were made with the built-in image-generation tool. Each prompt text file includes the generation/edit prompt and a suggested Gemini animation prompt. The local copies in `reference/video-seeds/` remain too.
 
@@ -66,7 +72,7 @@ All were made with the built-in image-generation tool. Each prompt text file inc
 - Let Ian select the useful Gemini fruit clips and optionally timestamp ranges. Suggested format: “Add banana, 2–8 seconds.” We can trim and curate the media.
 - Recommendation discussed: a short-video array keeps clip trimming and class selection simple. The current `DEMOS` array is a selector, **not an automatic playlist**. Automatic cycling, start/end trim configuration and a combined montage have not been implemented or requested as a final decision.
 - Keep the actual expo fruit clip as a useful baseline. The user disliked the solo-shopper / “dude” footage; older solo-shopper footage remains out of the live lineup.
-- Await the new Gemini people video based on the seed image. Inspect it for plausible action, separation, actual detection quality and performance before adding it. The current real supermarket scene remains available.
+- The new H-E-B people and produce videos are added; keep them available for curation. The real supermarket scene remains available.
 - Parking-lot footage was researched and downloaded, but no car mode was added. It is lower priority than the current fruit / supermarket demo.
 
 ## Files and local-only references

@@ -14,7 +14,7 @@ Everything needed at runtime is in `dist/`; the app makes no runtime CDN request
 | `dist/media/heb-orange.jpg` | [H-E-B product image](https://images.heb.com/is/image/HEBGrocery/000375168-1?hei=360&wid=360), URL supplied by Ian. |
 | `dist/media/people.svg` | Original two-person silhouette drawn for this app. |
 
-The original MOV, downloaded footage candidates and retired demo media remain in the ignored `reference/` directory. The expo and supermarket clips plus the four restored Gemini fruit clips ship and cache offline. The historical research page in `docs/retail-video-options.html` is reference material, not the current demo lineup.
+The original MOV, downloaded footage candidates and retired demo media remain in the ignored `reference/` directory. The expo and supermarket clips, two new H-E-B Gemini clips and four restored Gemini fruit clips ship and cache offline. The historical research page in `docs/retail-video-options.html` is reference material, not the current demo lineup.
 
 `dist/app.js`, `dist/config.js`, `dist/geometry.js`, `dist/style.css`, `dist/index.html` and the service worker are editable source. No API key or backend is needed. `npm start` serves the app locally; `npm run deploy` publishes `dist/` to Cloudflare Pages. Bump the cache version in `dist/sw.js` when changing bundled assets and keep `offline-assets.json` in sync.
 
@@ -26,3 +26,11 @@ These original 10-second, 1280×720 clips were supplied by Ian and generated wit
 - `media/remove-orange.mp4` — `gemini_generated_video_D06CC2AD.MP4`
 - `media/checkout-belt.mp4` — `gemini_generated_video_128CF9EF.mp4`
 - `media/fruit-display.mp4` — `gemini_generated_video_76AE4569.mp4`
+
+## New H-E-B Gemini footage
+
+Supplied by Ian in Google Drive Temp. Fictional AI-generated scenes, compressed to silent 1280×720 H.264/yuv420p at 24 fps, CRF 23, fast start, with source metadata removed. Original files remain in ignored `reference/new-demos/`.
+
+- `media/heb-people.mp4` — `gemini_generated_video_6989CEE7.mov`, 8.5 seconds, 2,694,637 bytes (59.5% smaller).
+- `media/heb-produce.mp4` — `gemini_generated_video_7A4F5B78.mov`, 4.2 seconds, 828,721 bytes (76.7% smaller).
+- Matching `*-poster.jpg` files are still frames from these clips.
