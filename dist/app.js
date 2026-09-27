@@ -6,7 +6,7 @@ const sampleImage=document.querySelector('#sample-image');
 const retry=document.querySelector('#retry');
 const playback=new PlaybackDelay(video,document.querySelector('#delayed-video'));
 let endedTimer;
-const statusText=document.querySelector('#status-text'), dot=document.querySelector('#status-dot');
+const statusText=document.querySelector('#status-text'), dot=document.querySelector('#status-dot'), statusIndicator=document.querySelector('.status');
 const rows=document.querySelector('#rows'), narrativeTitle=document.querySelector('#narrative-title');
 const flip=document.querySelector('#flip-camera'),clipSelector=document.querySelector('#demo-clips');
 const detectionOptions=document.querySelector('#detection-options'), autoRotate=document.querySelector('#auto-rotate');
@@ -63,10 +63,10 @@ function narrative(text){
 function status(text,state='loading'){
  desiredStatus={text,state};
  if(statusFading)return;
- if(statusText.textContent===text){dot.className=state;return}
- statusFading=true;statusText.style.opacity='0';
+ if(statusText.textContent===text){dot.className=state;statusIndicator.style.opacity='1';return}
+ statusFading=true;statusIndicator.style.opacity='0';
  setTimeout(()=>{
-  statusText.textContent=desiredStatus.text;dot.className=desiredStatus.state;statusText.style.opacity='1';
+  statusText.textContent=desiredStatus.text;dot.className=desiredStatus.state;statusIndicator.style.opacity='1';
   setTimeout(()=>{statusFading=false;status(desiredStatus.text,desiredStatus.state)},statusDuration());
  },statusDuration());
 }
@@ -94,10 +94,12 @@ function refreshStatus(){
  retry.hidden=!canRetry;
 }
 function detectionTitle(){
- return mode==='camera'?'Searching for life.':DEMOS.find(d=>d.key===selectedDemo).title;
+ if(mode!=='camera')return DEMOS.find(d=>d.key===selectedDemo).title;
+ if(tracks.some(t=>t.confirmed&&t.key==='person'))return 'I see you now!';
+ return tracks.some(t=>t.confirmed)?'Found something!':'Looking…';
 }
 function clear(){lastTrackingUpdate=0;tracks=[];overlay.replaceChildren();renderRecognition()}
-function renderRecognition(){for(const row of rows.children){const detected=tracks.some(t=>t.confirmed&&t.key===row.dataset.key);if(row.classList.contains('empty')===detected){row.classList.toggle('empty',!detected);row.setAttribute('aria-label',`${ITEMS[row.dataset.key].label}: ${detected?'detected':'not currently detected'}`)}}}
+function renderRecognition(){if(mode==='camera')narrative(detectionTitle());for(const row of rows.children){const detected=tracks.some(t=>t.confirmed&&t.key===row.dataset.key);if(row.classList.contains('empty')===detected){row.classList.toggle('empty',!detected);row.setAttribute('aria-label',`${ITEMS[row.dataset.key].label}: ${detected?'detected':'not currently detected'}`)}}}
 function iou(a,b){const area=Math.max(0,Math.min(a[0]+a[2],b[0]+b[2])-Math.max(a[0],b[0]))*Math.max(0,Math.min(a[1]+a[3],b[1]+b[3])-Math.max(a[1],b[1]));return area/(a[2]*a[3]+b[2]*b[3]-area||1)}
 function update(detections,still=false){
  const now=performance.now(),frameGap=lastTrackingUpdate?now-lastTrackingUpdate:0;lastTrackingUpdate=now;
@@ -229,15 +231,17 @@ video.addEventListener('ended',finishPlayback);
 video.addEventListener('seeking',()=>{if(isImage())return;playback.reset();viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
 for(const event of ['pause','playing','waiting','seeked'])video.addEventListener(event,()=>{if(isImage())return;if(event==='waiting')detectionActive=false;refreshStatus()});
 video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Sample video didn’t load 😕';detectionActive=false;clear();refreshStatus()}});
-const mainView=document.querySelector('#main-view');
+const mainView=document.querySelector('#main-view'),contentHeader=document.querySelector('.content-header');
 async function showView(next){
  const token=++viewTransition;
  if(next===activeView&&!mainView.classList.contains('view-fading'))return;
+ const restoreTabFocus=contentHeader.contains(document.activeElement);
  mainView.classList.add('view-fading');mainView.inert=true;
  if(!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,250));
  if(token!==viewTransition)return;
  const previous=activeView;activeView=next;
  const live=isLiveView();
+ document.querySelector(live?'.recognition-content':'#'+next+'-view').prepend(contentHeader);
  document.querySelector('#live-view').hidden=!live;
  document.querySelector('#settings-view').hidden=next!=='settings';
  document.querySelector('#about-view').hidden=next!=='about';
@@ -255,6 +259,7 @@ async function showView(next){
  }
  window.scrollTo({top:0,behavior:'instant'});
  mainView.inert=false;
+ if(restoreTabFocus)document.querySelector('#'+next).focus({preventScroll:true});
  // Allow the new content to lay out at zero opacity before fading it in.
  requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===viewTransition)mainView.classList.remove('view-fading')}));
  refreshStatus();
