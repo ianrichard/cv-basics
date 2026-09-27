@@ -1,6 +1,8 @@
 # Retail CV Demo
 
-Browser-based object detection for an introductory retail showcase. The app includes expo fruit (apples, bananas and oranges), supermarket people and four Gemini fruit clips for curation. Both work with Camera / Demo modes and offline caching. [Retail footage shortlist](docs/retail-video-options.html) surveys candidate scenes; it does not add those extra classes to the app.
+New session: read [HANDOFF.md](HANDOFF.md) for current state, pending decisions and local reference locations. The latest [Gemini video seed and prompts](docs/video-seeds/README.md) are tracked in this repository.
+
+Browser-based object detection for an introductory retail showcase. The app includes expo fruit (apples, bananas and oranges), supermarket people and four Gemini fruit clips for curation. The scenes work with Camera / Demo modes and offline caching. [Retail footage shortlist](docs/retail-video-options.html) surveys candidate scenes; it does not add those extra classes to the app.
 
 
 Static, browser-local COCO object detection. No API key, build, backend, or runtime CDN needed.
