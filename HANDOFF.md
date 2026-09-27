@@ -6,9 +6,9 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest app changes: remove stale detection echoes, shorten linger, allow lower-confidence continuation of existing tracks, confirm new people across two detections, and use subtle white box fills with red people outlines. Zero-count rows remain at 25% opacity.
-- Corresponding immutable deployment: https://dd099921.cv-basics.pages.dev/ (app commit `08f09c7`).
-- Published with `npm run deploy`. Verified deployed live detection, red people outlines and 5% white fill. Original expo fruit still reached 1/2/2 locally; the real supermarket demo also ran successfully.
+- Latest app changes: curate to five demos, slow Checkout belt to half speed in the source, and cycle automatically with fades. Tracking tuning, red people outlines, subtle white box fills and 25% empty rows remain.
+- Previous immutable deployment: https://dd099921.cv-basics.pages.dev/ (app commit `08f09c7`); the playlist update is ready for deployment.
+- Publish the playlist update using `npm run deploy`, then verify live playback.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
@@ -19,22 +19,27 @@ Stability and performance first, then curation and simplification. Avoid new fea
 
 `dist/` contains source and deployable files. TensorFlow.js 4.22.0 and SSD Lite MobileNet V2 are bundled locally. There are no API keys, backend or runtime CDN dependencies.
 
-Eight separately selectable demos are configured:
+Five demos now form an automatic repeating playlist:
 
-1. Expo fruit — default; Ian's actual prop fruit on a counter, compressed from `IMG_2974.MOV`.
-2. Supermarket — real stock footage of shoppers, people counting only.
-3. H-E-B people — new Gemini checkout scene, people counting only.
-4. H-E-B produce — new Gemini fruit-on-table scene.
-5. Add banana — Gemini clip.
-6. Remove orange — Gemini clip.
-7. Checkout belt — Gemini clip.
-8. Fruit display — Gemini clip.
+1. H-E-B people — default; Gemini checkout scene, people counting only.
+2. H-E-B produce — Gemini fruit-on-table scene.
+3. Add banana — Gemini clip.
+4. Remove orange — Gemini clip.
+5. Checkout belt — Gemini clip, now half speed in the source (about 20 seconds).
 
-Each entry in `dist/config.js` has its own class list and description. Fruit demos count apples, bananas and oranges only, preventing hands classified as people from affecting the fruit total. The supermarket scene counts detected people currently in view; it is not cumulative footfall or store occupancy. Camera mode offers Fruit / People and changes class filters without reopening the camera. All displayed counts are model output, never scripted.
+Expo fruit, Supermarket and Fruit display were removed from the app and offline cache at Ian's request. Their media and posters are preserved locally under ignored `reference/retired-sep27/`.
 
-New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with 50 ms CSS interpolation. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v13` with 32 manifest entries, including both new clips and posters.
+At each clip's end the video and boxes fade out over 320 ms, the next clip loads with detections cleared, then fades in over 320 ms. The playlist wraps to H-E-B people. Manual selection switches gracefully and continues the playlist from the selected clip. Generation tokens cancel superseded transitions. Reduced-motion preferences disable fades. Camera mode retains People / Fruit, represented by H-E-B people / H-E-B produce, and does not auto-cycle. No second decoder, framework or runtime dependency was added. Local browser spot checks confirmed automatic advancement and wraparound, opacity fading from 0 back to 1, rapid selection cancellation, and live detection resuming after transitions. Checkout belt reported 19.966667 seconds at playbackRate 1; console checks showed no errors.
+
+Each entry in `dist/config.js` has its own class list and description. Fruit demos count apples, bananas and oranges only, preventing hands classified as people from affecting the fruit total. The people scene counts detected people currently in view; it is not cumulative footfall or store occupancy. Camera mode offers Fruit / People and changes class filters without reopening the camera. All displayed counts are model output, never scripted.
+
+New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with 50 ms CSS interpolation. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v14` with 27 manifest entries, including both new clips and posters.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Ledger fruit images are locally bundled H-E-B photos; the people icon is an original SVG.
+
+## September 27 half-speed Checkout belt
+
+The original 10-second clip is preserved at `reference/slow-checkout/original.mp4`. The shipped `dist/media/checkout-belt.mp4` is 19.97 seconds, silent 1280×720 H.264/yuv420p, approximately 30 fps, CRF 22, fast start, source metadata stripped; 2,001,893 bytes. FFmpeg `setpts=2*(PTS-STARTPTS)` plus motion-compensated `minterpolate` creates intermediate frames offline, so runtime playback stays at rate 1. Sampled interpolated fruit/bottle frames showed no obvious warping. Contact sheets and the intermediate render remain ignored under `reference/slow-checkout/`.
 
 ## September 27 tracking adjustments
 
@@ -46,9 +51,9 @@ A local frame inspection compared the 640 px preprocessing cap against the full 
 
 Sources supplied in Drive Temp: `gemini_generated_video_6989CEE7.mov` (people, 8.5 seconds) and `gemini_generated_video_7A4F5B78.mov` (produce, 4.2 seconds). Original copies and contact sheets stay in ignored `reference/new-demos/`. Compressed to silent 1280×720 H.264/yuv420p at 24 fps, CRF 23, fast start, with source metadata removed. People: 6,661,319 → 2,694,637 bytes (59.5% smaller). Produce: 3,556,905 → 828,721 bytes (76.7% smaller). Posters come from the compressed clips. Local browser checks observed three people near the start and 1 apple / 2 bananas / 1 orange after placement. Counts vary with occlusion and framing; thresholds and detector behavior were not changed.
 
-## Actual expo fruit and observations
+## Retired expo fruit and historical observations
 
-Source: `~/My Drive/Temp/IMG_2974.MOV`, also preserved at `reference/IMG_2974.MOV`. The roughly 13-second clip shows 1 apple, 2 bananas and 2 oranges being placed. `dist/media/expo-fruit.mp4` is silent 1280×720 H.264, 30 fps, CRF 23 with fast start and source metadata removed: 24.6 MB became 2.7 MB. The live/default scene reaches the correct 1/2/2 arrangement after placement. Occlusion while placing fruit can temporarily suppress detections.
+Source: `~/My Drive/Temp/IMG_2974.MOV`, also preserved at `reference/IMG_2974.MOV`. The roughly 13-second clip shows 1 apple, 2 bananas and 2 oranges being placed. The retired `reference/retired-sep27/expo-fruit.mp4` is silent 1280×720 H.264, 30 fps, CRF 23 with fast start and source metadata removed: 24.6 MB became 2.7 MB. Before retirement, this scene reached the correct 1/2/2 arrangement after placement. Occlusion while placing fruit can temporarily suppress detections.
 
 Development-Mac browser spot checks covered repeated loops, scene switching, 390 px mobile layout and offline reload. The real fruit reached the correct five-item total on desktop, mobile and the deployed site. Median inference was roughly 33 ms in a short local run, with stable tensor counts; supermarket playback reported zero dropped frames over two loops. These observations are not a guarantee on event hardware. Physical expo camera, permissions and Safari behavior still need checking on that hardware. No test suite was added.
 
@@ -76,9 +81,9 @@ All were made with the built-in image-generation tool. Each prompt text file inc
 ## Next work / unresolved choices
 
 - Let Ian select the useful Gemini fruit clips and optionally timestamp ranges. Suggested format: “Add banana, 2–8 seconds.” We can trim and curate the media.
-- Recommendation discussed: a short-video array keeps clip trimming and class selection simple. The current `DEMOS` array is a selector, **not an automatic playlist**. Automatic cycling, start/end trim configuration and a combined montage have not been implemented or requested as a final decision.
-- Keep the actual expo fruit clip as a useful baseline. The user disliked the solo-shopper / “dude” footage; older solo-shopper footage remains out of the live lineup.
-- The new H-E-B people and produce videos are added; keep them available for curation. The real supermarket scene remains available.
+- Automatic cycling with fades is now implemented using the existing `DEMOS` order. Per-clip trims and a combined montage are not implemented.
+- Expo fruit, Supermarket and Fruit display are retired at Ian’s request. Original/retired media remain local-only. Older solo-shopper footage also remains out of the lineup.
+- The new H-E-B people and produce videos are added; keep them available for curation. The real supermarket scene is now retired.
 - Parking-lot footage was researched and downloaded, but no car mode was added. It is lower priority than the current fruit / supermarket demo.
 
 ## Files and local-only references

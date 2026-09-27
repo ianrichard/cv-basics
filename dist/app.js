@@ -5,9 +5,10 @@ const notice=document.querySelector('#notice'), noticeText=document.querySelecto
 const statusText=document.querySelector('#status-text'), dot=document.querySelector('#status-dot');
 const rows=document.querySelector('#rows');
 const flip=document.querySelector('#flip-camera'),clipSelector=document.querySelector('#demo-clips');
+const cameraScenes={fruit:DEMOS.find(d=>d.items.includes('apple')).key,people:DEMOS.find(d=>d.items.includes('person')).key};
 let activeKeys=DEMOS[0].items;
 let selectedDemo=DEMOS[0].key, facing='environment', cameraDevices=[], activeDeviceId='';
-for(const clip of DEMOS){const button=document.createElement('button');button.textContent=clip.label;button.dataset.clip=clip.key;button.setAttribute('aria-pressed',String(clip.key===selectedDemo));button.addEventListener('click',()=>{selectedDemo=clip.key;configureScene();if(mode==='demo')source('demo');else{viewRevision++;clear()}});clipSelector.append(button)}
+for(const clip of DEMOS){const button=document.createElement('button');button.textContent=clip.label;button.dataset.clip=clip.key;button.setAttribute('aria-pressed',String(clip.key===selectedDemo));button.addEventListener('click',()=>{if(mode==='demo')source('demo',false,clip.key);else{selectedDemo=clip.key;configureScene();viewRevision++;clear()}});clipSelector.append(button)}
 for(const key of ENABLED){const item=ITEMS[key];const row=document.createElement('div');row.className='row empty';row.dataset.key=key;row.innerHTML=`<img src="${item.image}" alt=""><span>${item.label}</span><output id="count-${key}" aria-label="${item.label}">0</output>`;rows.append(row)}
 let viewRevision=0;
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
@@ -17,9 +18,9 @@ function configureScene(){
  for(const row of rows.children)row.hidden=!activeKeys.includes(row.dataset.key);
  const people=activeKeys.length===1&&activeKeys[0]==='person';
  for(const button of clipSelector.children){
-  const clip=DEMOS.find(d=>d.key===button.dataset.clip),cameraKey=people?'store-people':'expo-fruit';
-  button.hidden=mode==='camera'&&!['expo-fruit','store-people'].includes(clip.key);
-  button.textContent=mode==='camera'?(clip.key==='store-people'?'People':'Fruit'):clip.label;
+  const clip=DEMOS.find(d=>d.key===button.dataset.clip),cameraKey=people?cameraScenes.people:cameraScenes.fruit;
+  button.hidden=mode==='camera'&&!Object.values(cameraScenes).includes(clip.key);
+  button.textContent=mode==='camera'?(clip.key===cameraScenes.people?'People':'Fruit'):clip.label;
   button.setAttribute('aria-pressed',String(clip.key===(mode==='camera'?cameraKey:selectedDemo)));
  }
  document.querySelector('.total').hidden=people;
@@ -56,10 +57,15 @@ function update(detections){
 }
 async function detect(){if(tf.getBackend()!=='webgl')throw new Error('GPU acceleration is unavailable.');const crop=coverCrop(video.videoWidth,video.videoHeight,picture.clientWidth,picture.clientHeight);const scale=Math.min(1,640/Math.max(crop.width,crop.height));canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));ctx.drawImage(video,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);let input,result;try{input=tf.tidy(()=>tf.browser.fromPixels(canvas).expandDims(0));result=await model.executeAsync(input);const [scores,boxes]=await Promise.all([result[0].data(),result[1].data()]);const n=result[0].shape[1],classes=result[0].shape[2],candidates=[];for(let i=0;i<n;i++){let max=0,category=-1;for(let c=0;c<classes;c++){const s=scores[i*classes+c];if(s>max){max=s;category=c+1}}const key=activeKeys.find(k=>ITEMS[k].id===category);if(!key||max<ITEMS[key].trackingThreshold)continue;const b=i*4,y=Math.max(0,boxes[b]),x=Math.max(0,boxes[b+1]),y2=Math.min(1,boxes[b+2]),x2=Math.min(1,boxes[b+3]);if(x2>x&&y2>y)candidates.push({key,score:max,box:[x,y,x2-x,y2-y]})}candidates.sort((a,b)=>b.score-a.score);const selected=[];for(const c of candidates){if(!selected.some(s=>s.key===c.key&&iou(s.box,c.box)>.45))selected.push(c);if(selected.length>=40)break}return selected}finally{input?.dispose();if(result)tf.dispose(result)}}
 async function loop(now){requestAnimationFrame(loop);if(!ready||busy||failed||document.hidden||video.paused||video.seeking||video.readyState<2||now-lastInference<50||lastFrame===video.currentTime)return;busy=true;const token=generation,revision=viewRevision;lastInference=now;lastFrame=video.currentTime;try{const found=await detect();if(token===generation&&revision===viewRevision){update(found);notice.hidden=true;status('Live Detection','live')}}catch(e){if(token!==generation)return;console.error(e);failed=true;clear();status('Detection unavailable','error');message('Detection stopped. Try restarting the camera or demo.',true)}finally{busy=false}}
-async function source(next, switching=false){
- const token=++generation;mode=next;configureScene();failed=false;ready=false;clear();lastFrame=-1;
+async function source(next, switching=false, clipKey=selectedDemo){
+ const fade=next==='demo'&&mode==='demo'&&video.readyState>=2;
+ const token=++generation;mode=next;ready=false;video.pause();
+ picture.classList.toggle('fading',next==='demo');
+ if(fade&&!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,320));
+ if(token!==generation)return;
+ selectedDemo=clipKey;configureScene();failed=false;clear();lastFrame=-1;
  flip.hidden=next!=='camera';flip.disabled=true;
- status(next==='camera'?'Opening camera':'Loading demo');message(next==='camera'?'Opening camera…':'Loading demo…');
+ status(next==='camera'?'Opening camera':'Loading demo');if(fade)notice.hidden=true;else message(next==='camera'?'Opening camera…':'Loading demo…');
  for(const key of ['camera','demo'])document.querySelector('#'+key).setAttribute('aria-pressed',String(key===next));
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
  video.pause();video.srcObject=null;video.removeAttribute('src');video.load();
@@ -85,11 +91,13 @@ async function source(next, switching=false){
   }
   await video.play();if(token!==generation)return;
   ready=Boolean(model);flip.disabled=false;
+  requestAnimationFrame(()=>{if(token===generation)picture.classList.remove('fading')});
   if(model){notice.hidden=true;status('Live Detection','live')}else{message('Preparing detection…');status('Loading detector')}
- }catch(e){if(token!==generation)return;flip.disabled=false;status(next==='camera'?'Camera unavailable':'Demo paused','error');message(next==='camera'?'Allow camera access, or choose Demo.':'Tap Try again to play the demo.',true);console.error(e)}
+ }catch(e){if(token!==generation)return;picture.classList.remove('fading');flip.disabled=false;status(next==='camera'?'Camera unavailable':'Demo paused','error');message(next==='camera'?'Allow camera access, or choose Demo.':'Tap Try again to play the demo.',true);console.error(e)}
 }
 new ResizeObserver(()=>{viewRevision++;clear();lastFrame=-1}).observe(document.querySelector('.stage'));
 flip.addEventListener('click',()=>{if(cameraDevices.length<2){status('No other camera available','error');return}facing=facing==='environment'?'user':'environment';source('camera',true)});
+video.addEventListener('ended',()=>{if(mode==='demo'&&!failed){const next=DEMOS[(DEMOS.findIndex(d=>d.key===selectedDemo)+1)%DEMOS.length];source('demo',false,next.key)}});
 video.addEventListener('seeking',()=>{viewRevision++;clear();lastFrame=-1});
 video.addEventListener('error',()=>{if(video.getAttribute('src')){ready=false;clear();status('Video unavailable','error');message('The demo video could not load. Try again or choose Camera.',true)}});
 for(const key of ['camera','demo'])document.querySelector('#'+key).addEventListener('click',()=>source(key));retry.addEventListener('click',()=>model?source(mode):location.reload());
