@@ -6,8 +6,8 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest direction: one wide navigation segment in order Demos / Camera / Settings / About, with icons above labels. Settings/About replace the entire main view with a 250 ms fade out/in; no modal. Inference/buffering pause while these views are open. The H1 uses the approved five-part story, with a title-scale status dot. The playlist now runs Produce at Checkout → Checkout belt → People in Store → Curbside → Produce at Home. Demo transitions blank the text while preserving one line of height. Mobile gaps above/below the title are both 32 px. People/car rows now use Ian's supplied photographic cutouts. Defaults remain 8 FPS, 40% fill, 0.20 s delay, glow off. Ian’s supplied red/yellow detection-shape app icon is installed.
-- Current immutable deployment: https://aac05bbd.cv-basics.pages.dev/ (app commit `319fd5d`). Published with `npm run deploy`; production config, styles, offline manifest and service worker match the working tree. Live browser check confirmed “Computers with vision” opening on Produce at Checkout, active fruit recognition and no console errors.
+- Latest direction: one wide navigation segment in order Demos / Camera / Settings / About, with icons above labels. Settings/About replace the entire main view with a 250 ms fade out/in; no modal. Inference/buffering pause while these views are open. The content column opens with “Explore Computer Vision”, “A learning demo” and a small independent Loading/Detecting status. A subtle divider separates that introduction from the narrative H1 and recognition rows. The playlist now runs Produce at Checkout → Checkout belt → People in Store → Curbside → Produce at Home. Narrative changes fade independently of loading/errors and preserve one line of height. Mobile video-to-content and narrative-to-items gaps are 32 px. People/car rows now use Ian's supplied photographic cutouts. Defaults remain 8 FPS, 40% fill, 0.20 s delay, glow off. Ian’s supplied red/yellow detection-shape app icon is installed.
+- Current deployment: educational framing and separate status/narrative are ready for publication; deployment verification follows.
 - Publish with `npm run deploy`. Status/mobile controls checked locally at desktop, 390 px and 320 px widths: active detection, no overflow, debug controls below the first mobile viewport, sticky video, per-sample filter retention and independent camera controls. Auto-rotation advanced through clips; disabling it enabled native single-video looping. Deliberately missing model/video assets confirmed error priority and a steady red dot. No console errors during normal playback. Physical camera capture remains to be checked on the event device.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
@@ -21,11 +21,11 @@ Stability and performance first, then curation and simplification. Avoid new fea
 
 Five demos now form an automatic repeating playlist:
 
-1. Produce at Checkout — default; “Computers with vision”.
-2. Checkout belt — “Scan produce on the move”; half-speed source, about 20 seconds.
-3. People in Store — “Notice our heart for people”; people detection only.
-4. Curbside — “And ways to serve better”; cars and people, 6.83 seconds.
-5. Produce at Home — “To deliver on our promises”; fruit-on-table scene.
+1. Produce at Checkout — default; “Computers can see produce.”.
+2. Checkout belt — “Even on the move.”; half-speed source, about 20 seconds.
+3. People in Store — “Recognize people around us.”; people detection only.
+4. Curbside — “And ways to serve better.”; cars and people, 6.83 seconds.
+5. Produce at Home — “Bringing bold promises home.”; fruit-on-table scene.
 
 Expo fruit, Supermarket and Fruit display were removed from the app and offline cache at Ian's request. Their media and posters are preserved locally under ignored `reference/retired-sep27/`.
 
@@ -33,11 +33,21 @@ At each clip's end the video and boxes fade out over 320 ms, the next clip loads
 
 Each entry in `dist/config.js` has its own class list. Fruit demos recognize apples, bananas and oranges only; people mode recognizes people. The sidebar now shows presence rather than counts: images and labels brighten to full opacity for confirmed detections and dim to 25% otherwise, over 500 ms. Images are 72 px desktop / 80 px wide / 64 px small, and labels are 23–29 px. Numeric counts, total, row dividers and scene captions are removed to keep the summit presentation focused on recognition. Accessible item labels also indicate detected/not currently detected. Camera mode offers independent Produce / People checkboxes and changes class filters without reopening the camera. All recognition is model output, never scripted.
 
-New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v26` with 34 manifest entries, including both new clips and posters.
+New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v28` with 34 manifest entries, including both new clips and posters.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Recognition-list fruit images are locally bundled H-E-B photos; people and car images are supplied photographic cutouts.
 
-## September 27 approved narrative and sequence (current)
+## September 27 educational framing and independent status (current)
+
+The live content column now begins with “Explore Computer Vision” (H2), “A learning demo”, and a small dot with a single changing status label. A subtle divider precedes the narrative H1 and item list. The browser title is Explore Computer Vision. About explicitly describes illustrative possibilities, not an announced project or deployed service.
+
+The updated five story lines are listed in the current playlist above. “Recognize people around us.” avoids adjacent uses of “serve” and fits one line at 320 px. All story lines retain terminal periods. Camera retains “Searching for life.” The existing order, detector, media and tuning remain unchanged.
+
+Loading / Detecting now occupy their own 14 px status line. Permission, pause, no-filter and error messages keep their priorities and retry behavior there. Story text persists during loading/errors and fades independently when selecting a new scene; it no longer shares the status live region. Its responsive 18–28 px size and one-line minimum remain, with a 32 px gap before the item list. Intro divider has 24 px spacing on both sides.
+
+Focused browser checks: all final story lines fit at 320 px; mobile/desktop hierarchy and active detection checked; Settings scene changes preserve separate status and title; a deliberately unavailable model shows the error/retry above an intact story title. No test suite added. Offline cache v28 updates HTML, config, app and CSS (v27 was a local intermediate only).
+
+## September 27 approved narrative and sequence (previous iteration)
 
 Ian approved the exact five lines listed above. Preserve their wording and order. The opening now uses Produce at Checkout, followed by belt / people / curbside / home, then repeats. Existing sample keys and deep links still work. Camera retains “Searching for life.”
 

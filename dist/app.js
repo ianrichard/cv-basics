@@ -7,7 +7,7 @@ const retry=document.querySelector('#retry');
 const playback=new PlaybackDelay(video,document.querySelector('#delayed-video'));
 let endedTimer;
 const statusText=document.querySelector('#status-text'), dot=document.querySelector('#status-dot');
-const rows=document.querySelector('#rows');
+const rows=document.querySelector('#rows'), narrativeTitle=document.querySelector('#narrative-title');
 const flip=document.querySelector('#flip-camera'),clipSelector=document.querySelector('#demo-clips');
 const detectionOptions=document.querySelector('#detection-options'), autoRotate=document.querySelector('#auto-rotate');
 const demoFilters=new Map(DEMOS.map(d=>[d.key,[...d.items]]));
@@ -37,6 +37,7 @@ for(const [key,group] of Object.entries(GROUPS)){
  });
 }
 function configureScene(){
+ narrative(detectionTitle());
  activeKeys=[...(mode==='camera'?cameraFilters:demoFilters.get(selectedDemo))];
  for(const row of rows.children)row.hidden=!activeKeys.includes(row.dataset.key);
  document.querySelector('#demo-options').hidden=mode!=='demo';document.querySelector('#auto-rotate-option').hidden=mode!=='demo'||isImage();
@@ -48,7 +49,17 @@ function configureScene(){
  }
 }
 // One text node, one pending destination: higher-priority state always wins at swap time.
-let desiredStatus={text:'Loading Computer Vision',state:'loading'},statusFading=false;
+let desiredStatus={text:'Loading',state:'loading'},statusFading=false;
+let desiredNarrative='',narrativeFading=false;
+function narrative(text){
+ desiredNarrative=text;
+ if(narrativeFading||narrativeTitle.textContent===text)return;
+ narrativeFading=true;narrativeTitle.style.opacity='0';
+ setTimeout(()=>{
+  narrativeTitle.textContent=desiredNarrative;narrativeTitle.style.opacity='1';
+  setTimeout(()=>{narrativeFading=false;narrative(desiredNarrative)},statusDuration());
+ },statusDuration());
+}
 function status(text,state='loading'){
  desiredStatus={text,state};
  if(statusFading)return;
@@ -68,15 +79,15 @@ function refreshStatus(){
  if(modelState==='error'){text='Model didn’t load 😕';state='error';canRetry=true}
  else if(failed){text='Detection stopped 😕';state='error';canRetry=true}
  else if(sourceState==='error'){text=sourceError;state='error';canRetry=true}
- else if(modelState!=='ready'){text='Loading Computer Vision'}
- else if(sceneTransition){text='';state='loading'}
+ else if(modelState!=='ready'){text='Loading'}
+ else if(sceneTransition){text='Loading';state='loading'}
  else if(sourceState==='permission')text='Allow Camera Access';
- else if(sourceState==='loading')text=mode==='camera'?'Loading Camera':'Loading Demo';
+ else if(sourceState==='loading')text='Loading';
  else if(!activeKeys.length){text='Select items to detect';state='idle'}
- else if(isImage()&&!document.hidden){text=imageAnalyzed?'Detected':'Loading Demo';state=imageAnalyzed?'complete':'loading'}
+ else if(isImage()&&!document.hidden){text=imageAnalyzed?'Detected':'Loading';state=imageAnalyzed?'complete':'loading'}
  else if(document.hidden||(video.paused&&!(video.ended&&playback.seconds))){text='Detection paused';state='idle'}
- else if(video.readyState<2||video.seeking||!detectionActive)text=mode==='camera'?'Loading Camera':'Loading Demo';
- else{text=detectionTitle();state='live'}
+ else if(video.readyState<2||video.seeking||!detectionActive)text='Loading';
+ else{text='Detecting';state='live'}
  const presentation=JSON.stringify([text,state,canRetry]);
  if(presentation===lastPresentation)return;lastPresentation=presentation;
  status(text,state);
