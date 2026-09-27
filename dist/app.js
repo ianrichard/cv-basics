@@ -87,8 +87,8 @@ function detectionTitle(){
  if(GROUPS.produce.items.some(key=>activeKeys.includes(key)))groups.push('fruit');
  if(activeKeys.includes('person'))groups.push('people');
  if(activeKeys.includes('car'))groups.push('cars');
- if(groups.length===1&&groups[0]==='fruit')return 'Looking for\nfruit';
- return `Detecting\n${groups.length===3?'fruit, people & cars':groups.join(' and ')}`;
+ if(groups.length===1&&groups[0]==='fruit')return 'Looking\u00a0for fruit';
+ return `Detecting ${groups.length===3?'fruit, people & cars':groups.join(' and ')}`;
 }
 function clear(){lastTrackingUpdate=0;tracks=[];overlay.replaceChildren();renderRecognition()}
 function renderRecognition(){for(const row of rows.children){const detected=tracks.some(t=>t.confirmed&&t.key===row.dataset.key);if(row.classList.contains('empty')===detected){row.classList.toggle('empty',!detected);row.setAttribute('aria-label',`${ITEMS[row.dataset.key].label}: ${detected?'detected':'not currently detected'}`)}}}
