@@ -30,3 +30,12 @@ The app also includes posters and four thumbnails in `dist/media/`. Exact titles
 ## User-provided Gemini clips
 
 `dist/media/checkout-belt.mp4` and `dist/media/fruit-display.mp4` are the original 10-second, 1280×720 Gemini-generated videos supplied by Ian Smith. The source files remain in the Git-ignored `reference/` folder.
+
+## Current ledger images
+
+The product images below were supplied by Ian Smith and downloaded unchanged at 360×360 from H-E-B. They are bundled locally for offline use.
+
+- `dist/media/heb-apple.jpg`: https://images.heb.com/is/image/HEBGrocery/000466634-1?hei=360&wid=360
+- `dist/media/heb-banana.jpg`: https://images.heb.com/is/image/HEBGrocery/000377497-1?hei=360&wid=360
+- `dist/media/heb-orange.jpg`: https://images.heb.com/is/image/HEBGrocery/000375168-1?hei=360&wid=360
+- `dist/media/people.svg`: original two-person silhouette drawn for this app; no external icon library or raster asset.
