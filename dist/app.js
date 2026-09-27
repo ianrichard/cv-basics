@@ -14,6 +14,7 @@ let selectedDemo=DEMOS.find(d=>d.key===new URL(location.href).searchParams.get('
 let viewRevision=0;
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;
+let detectionFPS=20,lastTrackingUpdate=0;
 const isImage=()=>mode==='demo'&&DEMOS.find(d=>d.key===selectedDemo).type==='image';
 const sampleKind=()=>isImage()?'image':'video';
 let modelState='downloading', sourceState='loading', sourceError='', detectionActive=false;
@@ -74,13 +75,14 @@ function refreshStatus(){
  status(text,state);
  notice.hidden=!detail;noticeText.textContent=detail;retry.hidden=!canRetry;
 }
-function clear(){tracks=[];overlay.replaceChildren();renderRecognition()}
+function clear(){lastTrackingUpdate=0;tracks=[];overlay.replaceChildren();renderRecognition()}
 function renderRecognition(){for(const row of rows.children){const detected=tracks.some(t=>t.confirmed&&t.key===row.dataset.key);if(row.classList.contains('empty')===detected){row.classList.toggle('empty',!detected);row.setAttribute('aria-label',`${ITEMS[row.dataset.key].label}: ${detected?'detected':'not currently detected'}`)}}}
 function iou(a,b){const area=Math.max(0,Math.min(a[0]+a[2],b[0]+b[2])-Math.max(a[0],b[0]))*Math.max(0,Math.min(a[1]+a[3],b[1]+b[3])-Math.max(a[1],b[1]));return area/(a[2]*a[3]+b[2]*b[3]-area||1)}
 function update(detections,still=false){
- const now=performance.now();
- // Expire before matching so a stale box cannot revive a weak detection.
- tracks=tracks.filter(t=>{if(now-t.seen>ITEMS[t.key].linger){t.el.remove();return false}return true});
+ const now=performance.now(),frameGap=lastTrackingUpdate?now-lastTrackingUpdate:0;lastTrackingUpdate=now;
+ // Keep the previous observation eligible for matching even at low detection FPS.
+ // Unmatched boxes still expire using their original linger below.
+ tracks=tracks.filter(t=>{if(now-t.seen>Math.max(ITEMS[t.key].linger,frameGap+50)){t.el.remove();return false}return true});
  const available=new Set(tracks),observedKeys=new Set();
  for(const d of detections){
   let match=null,best=d.key==='person'?.16:.10;
@@ -97,7 +99,7 @@ function update(detections,still=false){
   }
  }
  // Fresh detections win over linger: never count unmatched echoes alongside them.
- tracks=tracks.filter(t=>{if(available.has(t)&&(!t.confirmed||observedKeys.has(t.key))){t.el.remove();return false}return true});
+ tracks=tracks.filter(t=>{if(available.has(t)&&(!t.confirmed||observedKeys.has(t.key)||now-t.seen>ITEMS[t.key].linger)){t.el.remove();return false}return true});
  for(const t of tracks){const [x,y,w,h]=t.box;t.el.hidden=!t.confirmed;Object.assign(t.el.style,{left:`${x*100}%`,top:`${y*100}%`,width:`${w*100}%`,height:`${h*100}%`})}
  renderRecognition();
 }
@@ -106,7 +108,7 @@ async function loop(now){
  requestAnimationFrame(loop);
  if(!ready||busy||failed||!activeKeys.length||document.hidden)return;
  if(isImage()){if(!imagePending)return;imagePending=false}
- else if(video.paused||video.seeking||video.readyState<2||now-lastInference<50||lastFrame===video.currentTime)return;
+ else if(video.paused||video.seeking||video.readyState<2||now-lastInference<1000/detectionFPS||lastFrame===video.currentTime)return;
  busy=true;const token=generation,revision=viewRevision;lastInference=now;lastFrame=video.currentTime;
  try{const found=await detect();if(token===generation&&revision===viewRevision){update(found,isImage());detectionActive=true;if(isImage())imageAnalyzed=true;refreshStatus()}}
  catch(e){if(token!==generation||revision!==viewRevision)return;console.error(e);failed=true;detectionActive=false;clear();refreshStatus()}
@@ -168,6 +170,19 @@ function layoutOverlay(){
 }
 new ResizeObserver(()=>{viewRevision++;clear();lastFrame=-1;imagePending=true;imageAnalyzed=false;layoutOverlay();refreshStatus()}).observe(document.querySelector('.stage'));
 flip.addEventListener('click',()=>{if(cameraDevices.length<2)return;facing=facing==='environment'?'user':'environment';source('camera',true)});
+const fpsControl=document.querySelector('#detection-fps'),glowControl=document.querySelector('#box-glow'),fillControl=document.querySelector('#box-fill'),fillOpacity=document.querySelector('#fill-opacity');
+function applyTuning(){
+ detectionFPS=Number(fpsControl.value);
+ overlay.style.setProperty('--box-duration',`${1000/detectionFPS}ms`);
+ overlay.style.setProperty('--box-fill-opacity',`${fillOpacity.value}%`);
+ overlay.classList.toggle('glow-enabled',glowControl.checked);
+ overlay.classList.toggle('fill-disabled',!fillControl.checked);
+ document.querySelector('#fps-value').value=detectionFPS===20?'Max (20)':String(detectionFPS);
+ document.querySelector('#fill-value').value=`${fillOpacity.value}%`;
+ fillOpacity.disabled=!fillControl.checked;
+}
+for(const control of [fpsControl,glowControl,fillControl,fillOpacity])control.addEventListener('input',applyTuning);
+applyTuning();
 autoRotate.addEventListener('change',()=>{video.loop=mode==='demo'&&!isImage()&&!autoRotate.checked});
 video.addEventListener('ended',()=>{if(mode==='demo'&&!isImage()&&!failed&&sourceState!=='error'){const clips=DEMOS.filter(d=>d.type!=='image');const next=autoRotate.checked?clips[(clips.findIndex(d=>d.key===selectedDemo)+1)%clips.length].key:selectedDemo;source('demo',false,next)}});
 video.addEventListener('seeking',()=>{if(isImage())return;viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
