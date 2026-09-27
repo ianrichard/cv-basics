@@ -1,8 +1,11 @@
 import {ITEMS, ENABLED, DEMOS, GROUPS} from './config.js';
 import {coverCrop} from './geometry.js';
+import {PlaybackDelay} from './playback-delay.js';
 const video=document.querySelector('#video'), picture=document.querySelector('#picture'), overlay=document.querySelector('#overlays');
 const sampleImage=document.querySelector('#sample-image');
-const notice=document.querySelector('#notice'), noticeText=document.querySelector('#notice-text'), retry=document.querySelector('#retry');
+const retry=document.querySelector('#retry');
+const playback=new PlaybackDelay(video,document.querySelector('#delayed-video'));
+let endedTimer;
 const statusText=document.querySelector('#status-text'), dot=document.querySelector('#status-dot');
 const rows=document.querySelector('#rows');
 const flip=document.querySelector('#flip-camera'),clipSelector=document.querySelector('#demo-clips');
@@ -15,7 +18,7 @@ let selectedDemo=DEMOS.find(d=>d.key===(requestedSample==='curbside-photo'?'curb
 let viewRevision=0;
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;
-let detectionFPS=20,lastTrackingUpdate=0;
+let detectionFPS=8,lastTrackingUpdate=0;
 const isImage=()=>mode==='demo'&&DEMOS.find(d=>d.key===selectedDemo).type==='image';
 const sampleKind=()=>isImage()?'image':'video';
 let modelState='downloading', sourceState='loading', sourceError='', detectionActive=false;
@@ -36,7 +39,7 @@ function configureScene(){
  activeKeys=[...(mode==='camera'?cameraFilters:demoFilters.get(selectedDemo))];
  for(const row of rows.children)row.hidden=!activeKeys.includes(row.dataset.key);
  clipSelector.hidden=mode!=='demo';document.querySelector('#auto-rotate-option').hidden=mode!=='demo'||isImage();
- video.loop=mode==='demo'&&!isImage()&&!autoRotate.checked;
+ video.loop=mode==='demo'&&!isImage()&&!autoRotate.checked&&!playback.seconds;
  for(const button of clipSelector.children)button.setAttribute('aria-pressed',String(button.dataset.clip===selectedDemo));
  for(const label of detectionOptions.querySelectorAll('label')){
   const key=label.dataset.group;label.hidden=mode==='camera'&&key==='cars';
@@ -58,23 +61,23 @@ function status(text,state='loading'){
 function statusDuration(){return matchMedia('(prefers-reduced-motion: reduce)').matches?0:250}
 let lastPresentation='';
 function refreshStatus(){
- let text,state='loading',detail='',canRetry=false;
+ let text,state='loading',canRetry=false;
  // Model failure > detection failure > source failure > loading > active processing.
- if(modelState==='error'){text='Couldn’t load vision superpowers';state='error';detail='Detection could not start. Try again with hardware acceleration enabled.';canRetry=true}
- else if(failed){text='Detection unavailable';state='error';detail='Try restarting the camera or demo.';canRetry=true}
- else if(sourceState==='error'){text=sourceError;state='error';detail=mode==='camera'?'Try again or choose Demo.':'Try again or choose another sample.';canRetry=true}
- else if(modelState!=='ready'){text=modelState==='downloading'?'Downloading vision superpowers':'Preparing vision superpowers';detail='Loading superpowers…\nThis may take a bit.'}
+ if(modelState==='error'){text='Couldn’t load vision superpowers';state='error';canRetry=true}
+ else if(failed){text='Detection unavailable';state='error';canRetry=true}
+ else if(sourceState==='error'){text=sourceError;state='error';canRetry=true}
+ else if(modelState!=='ready'){text=modelState==='downloading'?'Downloading vision superpowers':'Preparing vision superpowers'}
  else if(sourceState==='permission')text='Waiting for camera permission';
  else if(sourceState==='loading')text=mode==='camera'?'Starting camera':`Loading sample ${sampleKind()}`;
  else if(!activeKeys.length){text='Select items to detect';state='idle'}
  else if(isImage()&&!document.hidden){text=imageAnalyzed?'Sample image analyzed':'Analyzing sample image';state=imageAnalyzed?'complete':'loading'}
- else if(document.hidden||video.paused){text='Detection paused';state='idle'}
+ else if(document.hidden||(video.paused&&!(video.ended&&playback.seconds))){text='Detection paused';state='idle'}
  else if(video.readyState<2||video.seeking||!detectionActive)text=mode==='camera'?'Starting camera':`Loading sample ${sampleKind()}`;
  else{text=mode==='camera'?'Detecting from camera':'Detecting in sample video';state='live'}
- const presentation=JSON.stringify([text,state,detail,canRetry]);
+ const presentation=JSON.stringify([text,state,canRetry]);
  if(presentation===lastPresentation)return;lastPresentation=presentation;
  status(text,state);
- notice.hidden=!detail;noticeText.textContent=detail;retry.hidden=!canRetry;
+ retry.hidden=!canRetry;
 }
 function clear(){lastTrackingUpdate=0;tracks=[];overlay.replaceChildren();renderRecognition()}
 function renderRecognition(){for(const row of rows.children){const detected=tracks.some(t=>t.confirmed&&t.key===row.dataset.key);if(row.classList.contains('empty')===detected){row.classList.toggle('empty',!detected);row.setAttribute('aria-label',`${ITEMS[row.dataset.key].label}: ${detected?'detected':'not currently detected'}`)}}}
@@ -107,6 +110,7 @@ function update(detections,still=false){
 async function detect(){if(tf.getBackend()!=='webgl')throw new Error('GPU acceleration is unavailable.');const media=isImage()?sampleImage:video;const crop=isImage()?{x:0,y:0,width:sampleImage.naturalWidth,height:sampleImage.naturalHeight}:coverCrop(video.videoWidth,video.videoHeight,picture.clientWidth,picture.clientHeight);const scale=Math.min(1,640/Math.max(crop.width,crop.height));canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));ctx.drawImage(media,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);let input,result;try{input=tf.tidy(()=>tf.browser.fromPixels(canvas).expandDims(0));result=await model.executeAsync(input);const [scores,boxes]=await Promise.all([result[0].data(),result[1].data()]);const n=result[0].shape[1],classes=result[0].shape[2],candidates=[];for(let i=0;i<n;i++){let max=0,category=-1;for(let c=0;c<classes;c++){const s=scores[i*classes+c];if(s>max){max=s;category=c+1}}const key=activeKeys.find(k=>ITEMS[k].id===category);if(!key||max<ITEMS[key].trackingThreshold)continue;const b=i*4,y=Math.max(0,boxes[b]),x=Math.max(0,boxes[b+1]),y2=Math.min(1,boxes[b+2]),x2=Math.min(1,boxes[b+3]);if(x2>x&&y2>y)candidates.push({key,score:max,box:[x,y,x2-x,y2-y]})}candidates.sort((a,b)=>b.score-a.score);const selected=[];for(const c of candidates){if(!selected.some(s=>s.key===c.key&&iou(s.box,c.box)>.45))selected.push(c);if(selected.length>=40)break}return selected}finally{input?.dispose();if(result)tf.dispose(result)}}
 async function loop(now){
  requestAnimationFrame(loop);
+ if(!isImage()&&sourceState==='ready'&&!document.hidden)playback.tick(now);
  if(!ready||busy||failed||!activeKeys.length||document.hidden)return;
  if(isImage()){if(!imagePending)return;imagePending=false}
  else if(video.paused||video.seeking||video.readyState<2||now-lastInference<1000/detectionFPS||lastFrame===video.currentTime)return;
@@ -117,13 +121,14 @@ async function loop(now){
 }
 async function source(next, switching=false, clipKey=selectedDemo){
  const fade=next==='demo'&&mode==='demo'&&sourceState==='ready';
+ clearTimeout(endedTimer);
  const token=++generation;mode=next;ready=false;sourceState='loading';sourceError='';failed=false;detectionActive=false;video.pause();
  selectedDemo=clipKey;imagePending=true;imageAnalyzed=false;configureScene();clear();refreshStatus();
  for(const key of ['camera','demo'])document.querySelector('#'+key).setAttribute('aria-pressed',String(key===next));
  picture.classList.toggle('fading',next==='demo');
  if(fade&&!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,320));
  if(token!==generation)return;
- lastFrame=-1;flip.hidden=next!=='camera';flip.disabled=true;
+ lastFrame=-1;playback.reset();flip.hidden=next!=='camera';flip.disabled=true;
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
  video.srcObject=null;video.removeAttribute('src');if(next==='camera')video.poster='';video.load();
  sampleImage.hidden=!isImage();video.hidden=isImage();sampleImage.removeAttribute('src');layoutOverlay();
@@ -171,9 +176,12 @@ function layoutOverlay(){
 }
 new ResizeObserver(()=>{viewRevision++;clear();lastFrame=-1;imagePending=true;imageAnalyzed=false;layoutOverlay();refreshStatus()}).observe(document.querySelector('.stage'));
 flip.addEventListener('click',()=>{if(cameraDevices.length<2)return;facing=facing==='environment'?'user':'environment';source('camera',true)});
-const fpsControl=document.querySelector('#detection-fps'),glowControl=document.querySelector('#box-glow'),fillControl=document.querySelector('#box-fill'),fillOpacity=document.querySelector('#fill-opacity');
+const fpsControl=document.querySelector('#detection-fps'),glowControl=document.querySelector('#box-glow'),fillControl=document.querySelector('#box-fill'),fillOpacity=document.querySelector('#fill-opacity'),delayControl=document.querySelector('#playback-delay');
 function applyTuning(){
  detectionFPS=Number(fpsControl.value);
+ const delay=Number(delayControl.value);
+ if(delay!==playback.seconds){playback.setDelay(delay);viewRevision++;clear();lastFrame=-1;imagePending=true;imageAnalyzed=false;configureScene();if(video.ended)finishPlayback()}
+ document.querySelector('#delay-value').value=`${delay.toFixed(2)} s`;
  overlay.style.setProperty('--box-duration',`${1000/detectionFPS}ms`);
  overlay.style.setProperty('--box-fill-opacity',`${fillOpacity.value}%`);
  overlay.classList.toggle('glow-enabled',glowControl.checked);
@@ -182,17 +190,28 @@ function applyTuning(){
  document.querySelector('#fill-value').value=`${fillOpacity.value}%`;
  fillOpacity.disabled=!fillControl.checked;
 }
-for(const control of [fpsControl,glowControl,fillControl,fillOpacity])control.addEventListener('input',applyTuning);
+for(const control of [fpsControl,glowControl,fillControl,fillOpacity,delayControl])control.addEventListener('input',applyTuning);
 applyTuning();
-autoRotate.addEventListener('change',()=>{video.loop=mode==='demo'&&!isImage()&&!autoRotate.checked});
-video.addEventListener('ended',()=>{if(mode==='demo'&&!isImage()&&!failed&&sourceState!=='error'){const clips=DEMOS.filter(d=>d.type!=='image');const next=autoRotate.checked?clips[(clips.findIndex(d=>d.key===selectedDemo)+1)%clips.length].key:selectedDemo;source('demo',false,next)}});
-video.addEventListener('seeking',()=>{if(isImage())return;viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
+function finishPlayback(){
+ clearTimeout(endedTimer);
+ if(mode!=='demo'||isImage()||failed||sourceState==='error')return;
+ const token=generation;
+ endedTimer=setTimeout(()=>{
+  if(token!==generation||failed||sourceState==='error')return;
+  const clips=DEMOS.filter(d=>d.type!=='image');
+  const next=autoRotate.checked?clips[(clips.findIndex(d=>d.key===selectedDemo)+1)%clips.length].key:selectedDemo;
+  source('demo',false,next);
+ },playback.seconds*1000);
+}
+autoRotate.addEventListener('change',()=>{configureScene();if(video.ended)finishPlayback()});
+video.addEventListener('ended',finishPlayback);
+video.addEventListener('seeking',()=>{if(isImage())return;playback.reset();viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
 for(const event of ['pause','playing','waiting','seeked'])video.addEventListener(event,()=>{if(isImage())return;if(event==='waiting')detectionActive=false;refreshStatus()});
 video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Couldn’t load sample video';detectionActive=false;clear();refreshStatus()}});
 for(const key of ['camera','demo'])document.querySelector('#'+key).addEventListener('click',()=>source(key));
 retry.addEventListener('click',()=>modelState==='error'?location.reload():source(mode));
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clear();detectionActive=false}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
-window.addEventListener('pagehide',()=>{generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear();detectionActive=false}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
+window.addEventListener('pagehide',()=>{clearTimeout(endedTimer);playback.reset();generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});
 async function init(){
  source('demo');
  try{
