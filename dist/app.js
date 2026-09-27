@@ -15,10 +15,15 @@ const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{alpha:
 function configureScene(){
  const scene=DEMOS.find(d=>d.key===selectedDemo);activeKeys=scene.items;
  for(const row of rows.children)row.hidden=!activeKeys.includes(row.dataset.key);
- for(const button of clipSelector.children)button.setAttribute('aria-pressed',String(button.dataset.clip===selectedDemo));
  const people=activeKeys.length===1&&activeKeys[0]==='person';
+ for(const button of clipSelector.children){
+  const clip=DEMOS.find(d=>d.key===button.dataset.clip),cameraKey=people?'store-people':'expo-fruit';
+  button.hidden=mode==='camera'&&!['expo-fruit','store-people'].includes(clip.key);
+  button.textContent=mode==='camera'?(clip.key==='store-people'?'People':'Fruit'):clip.label;
+  button.setAttribute('aria-pressed',String(clip.key===(mode==='camera'?cameraKey:selectedDemo)));
+ }
  document.querySelector('.total').hidden=people;
- document.querySelector('#scene-note').textContent=people?(mode==='demo'?'Supermarket · people currently in view':'People currently in view'):(mode==='demo'?'Expo fruit · apples, bananas and oranges':'Show apples, bananas and oranges');
+ document.querySelector('#scene-note').textContent=mode==='demo'?scene.note:(people?'People currently in view':'Show apples, bananas and oranges');
 }
 function status(text,state=''){statusText.textContent=text;dot.className=state}
 function message(text,canRetry=false){notice.hidden=false;noticeText.textContent=text;retry.hidden=!canRetry}
@@ -33,7 +38,6 @@ async function source(next, switching=false){
  flip.hidden=next!=='camera';flip.disabled=true;
  status(next==='camera'?'Opening camera':'Loading demo');message(next==='camera'?'Opening camera…':'Loading demo…');
  for(const key of ['camera','demo'])document.querySelector('#'+key).setAttribute('aria-pressed',String(key===next));
- for(const button of clipSelector.children)button.setAttribute('aria-pressed',String(button.dataset.clip===selectedDemo));
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
  video.pause();video.srcObject=null;video.removeAttribute('src');video.load();
  try{

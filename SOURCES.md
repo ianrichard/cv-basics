@@ -14,6 +14,15 @@ Everything needed at runtime is in `dist/`; the app makes no runtime CDN request
 | `dist/media/heb-orange.jpg` | [H-E-B product image](https://images.heb.com/is/image/HEBGrocery/000375168-1?hei=360&wid=360), URL supplied by Ian. |
 | `dist/media/people.svg` | Original two-person silhouette drawn for this app. |
 
-The original MOV, downloaded footage candidates and retired demo media remain in the ignored `reference/` directory. Only the two curated clips ship or cache offline. The historical research page in `docs/retail-video-options.html` is reference material, not the current demo lineup.
+The original MOV, downloaded footage candidates and retired demo media remain in the ignored `reference/` directory. The expo and supermarket clips plus the four restored Gemini fruit clips ship and cache offline. The historical research page in `docs/retail-video-options.html` is reference material, not the current demo lineup.
 
 `dist/app.js`, `dist/config.js`, `dist/geometry.js`, `dist/style.css`, `dist/index.html` and the service worker are editable source. No API key or backend is needed. `npm start` serves the app locally; `npm run deploy` publishes `dist/` to Cloudflare Pages. Bump the cache version in `dist/sw.js` when changing bundled assets and keep `offline-assets.json` in sync.
+
+## Restored Gemini footage
+
+These original 10-second, 1280×720 clips were supplied by Ian and generated with Gemini. They are restored unchanged for selection and timestamp review.
+
+- `media/add-banana.mp4` — `gemini_generated_video_6F23B4FE.MP4`
+- `media/remove-orange.mp4` — `gemini_generated_video_D06CC2AD.MP4`
+- `media/checkout-belt.mp4` — `gemini_generated_video_128CF9EF.mp4`
+- `media/fruit-display.mp4` — `gemini_generated_video_76AE4569.mp4`

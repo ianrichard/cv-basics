@@ -1,6 +1,6 @@
 # Retail CV Demo
 
-Browser-based object detection for an introductory retail showcase. The app has two curated scenes: expo fruit (apples, bananas and oranges) and supermarket people. Both work with Camera / Demo modes and offline caching. [Retail footage shortlist](docs/retail-video-options.html) surveys candidate scenes; it does not add those extra classes to the app.
+Browser-based object detection for an introductory retail showcase. The app includes expo fruit (apples, bananas and oranges), supermarket people and four Gemini fruit clips for curation. Both work with Camera / Demo modes and offline caching. [Retail footage shortlist](docs/retail-video-options.html) surveys candidate scenes; it does not add those extra classes to the app.
 
 
 Static, browser-local COCO object detection. No API key, build, backend, or runtime CDN needed.
@@ -31,9 +31,9 @@ Edit dist/config.js: each class has its COCO category ID, display label, color, 
 
 The model is TensorFlow's SSD Lite MobileNet V2. TensorFlow.js 4.22.0 uses the WebGL backend with its default handling of small CPU helper operations. There is no full CPU inference fallback. Lightweight JavaScript postprocessing handles class filtering, NMS and tracking. Video fills the stage with a centered cover crop. Inference uses the exact visible crop, capped at 640 pixels on its longest side; only one inference runs at once, targeting at most 20 updates per second. Video plays independently. Tracks linger up to 450 ms through missed detections. DOM boxes interpolate positions over 50 ms.
 
-Demo mode starts with Ian's actual expo fruit, filmed on a counter. The second scene shows shoppers inside a supermarket. Choose **Fruit** or **People**, then **Camera** to use the same class selection live. Fruit mode ignores person detections, including hands sometimes mistaken for people. People mode shows only the current detected people count, not cumulative visitors or store occupancy. All counts come from the model, never scripted.
+Demo mode starts with Ian's actual expo fruit, filmed on a counter. The second scene shows shoppers inside a supermarket. Add banana, Remove orange, Checkout belt and Fruit display restore the four Gemini clips for review. Each clip is a separate entry in the `DEMOS` array, so selections and later trims can be curated without changing the detector. Camera mode offers **Fruit** and **People** and keeps the selected class group live. Fruit mode ignores person detections, including hands sometimes mistaken for people. People mode shows only the current detected people count, not cumulative visitors or store occupancy. All counts come from the model, never scripted.
 
-The two silent MP4s use 1280×720 H.264 at 30 fps with fast-start metadata. The 13-second expo MOV was compressed from 24.6 MB to 2.7 MB; audio and source metadata were stripped. Original footage and retired demo media are preserved locally in the ignored `reference/` directory, outside deployments. Sources and media licenses are in [dist/credits.html](dist/credits.html).
+The expo fruit and supermarket MP4s use 1280×720 H.264 at 30 fps with fast-start metadata. The 13-second expo MOV was compressed from 24.6 MB to 2.7 MB; audio and source metadata were stripped. The four Gemini clips are restored unchanged. Original footage and retired demo media are preserved locally in the ignored `reference/` directory, outside deployments. Sources and media licenses are in [dist/credits.html](dist/credits.html).
 
 For the expo, start with one apple, two bananas and two oranges. Place them one at a time, visibly apart, near the center of the camera view, with even lighting. Pull your hand away and allow the count to settle. The current [COCO category list](https://github.com/tensorflow/tfjs-models/blob/master/coco-ssd/src/classes.ts) does not include grapes, pears or lemons; adding those accurately would require a different or custom model.
 
