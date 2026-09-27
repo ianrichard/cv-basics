@@ -42,3 +42,6 @@
  .debug-controls{flex:none;padding:12px 0 24px;border-top:1px solid #ffffff14}
 }
 @media(prefers-reduced-motion:reduce){#status-text,#status-dot{transition:none}#status-dot::after{animation:none}}
+
+#sample-image{display:block;width:100%;height:100%;object-fit:contain}
+#status-dot.complete{background:#65b889;box-shadow:0 0 12px #65b88930}

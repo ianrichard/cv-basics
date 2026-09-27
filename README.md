@@ -2,7 +2,7 @@
 
 New session: read [HANDOFF.md](HANDOFF.md) for current state, pending decisions and local reference locations. The latest [Gemini video seed and prompts](docs/video-seeds/README.md) are tracked in this repository.
 
-Browser-based object detection for an introductory retail showcase. The app cycles through five Gemini demos: H-E-B people, H-E-B produce, Add banana, Remove orange and Checkout belt. The scenes work with Camera / Demo modes and offline caching. [Retail footage shortlist](docs/retail-video-options.html) surveys candidate scenes; it does not add those extra classes to the app.
+Browser-based object detection for an introductory retail showcase. The app cycles through five Gemini demos: H-E-B people, H-E-B produce, Add banana, Remove orange and Checkout belt. A manual Curbside photo sample is also available to evaluate Cars + People before generating video. The scenes work with Camera / Demo modes and offline caching. [Retail footage shortlist](docs/retail-video-options.html) surveys candidate scenes; it does not add those extra classes to the app.
 
 
 Static, browser-local COCO object detection. No API key, build, backend, or runtime CDN needed.
@@ -40,6 +40,8 @@ Checkout belt is slowed in the source file to half speed (about 20 seconds), wit
 For the expo, start with one apple, two bananas and two oranges. Place them one at a time, visibly apart, near the center of the camera view, with even lighting. Pull your hand away and allow the count to settle. The current [COCO category list](https://github.com/tensorflow/tfjs-models/blob/master/coco-ssd/src/classes.ts) does not include grapes, pears or lemons; adding those accurately would require a different or custom model.
 
 On mobile, the video sticks to the top while scrolling. The main presentation and source toggle fill the first viewport; sample selection and detection/rotation controls sit below it. The status fades out, swaps one text node, then fades in (250 ms each). Blue loading dots pulse inward, active green dots outward, and red error dots remain steady. Errors take priority over loading and active states; source and model readiness are tracked independently. Motion is disabled for reduced-motion preferences.
+
+Still samples use `type: 'image'` in `DEMOS` and are excluded from automatic video rotation. Select **Curbside photo**, or open `/?sample=curbside-photo` directly. The full photo is shown without cropping and analyzed once using the existing detector; changing filters or resizing reruns analysis. Boxes are mapped to the contained image rather than the stage's letterboxing. A steady green **Sample image analyzed** status means the results are held; no continuous GPU inference runs on an unchanged photo. Live video and camera retain their existing tracking behavior.
 
 ## Validation and limits
 

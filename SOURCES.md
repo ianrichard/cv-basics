@@ -32,3 +32,7 @@ Supplied by Ian in Google Drive Temp. Fictional AI-generated scenes, compressed 
 - `media/heb-people.mp4` — `gemini_generated_video_6989CEE7.mov`, 8.5 seconds, 2,694,637 bytes (59.5% smaller).
 - `media/heb-produce.mp4` — `gemini_generated_video_7A4F5B78.mov`, 4.2 seconds, 828,721 bytes (76.7% smaller).
 - Matching `*-poster.jpg` files are still frames from these clips.
+
+## Curbside image evaluation
+
+`media/curbside.jpg` comes from Ian's supplied Drive Temp `IMG_2986.JPG`. The original stays in ignored `reference/curbside/`. The shipped 1920×1280 JPEG is 187,474 bytes, re-encoded without source metadata. It is a manual Cars + People detection sample, separate from the automatic video playlist. No claim is made about the photo being AI-generated.
