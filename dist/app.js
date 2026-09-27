@@ -28,10 +28,33 @@ function configureScene(){
 function status(text,state=''){statusText.textContent=text;dot.className=state}
 function message(text,canRetry=false){notice.hidden=false;noticeText.textContent=text;retry.hidden=!canRetry}
 function clear(){tracks=[];overlay.replaceChildren();renderCounts()}
-function renderCounts(){for(const row of rows.children){const count=tracks.filter(t=>t.key===row.dataset.key).length;row.querySelector('output').value=count;row.classList.toggle('empty',count===0)}document.querySelector('#total').value=tracks.length}
+function renderCounts(){for(const row of rows.children){const count=tracks.filter(t=>t.confirmed&&t.key===row.dataset.key).length;row.querySelector('output').value=count;row.classList.toggle('empty',count===0)}document.querySelector('#total').value=tracks.filter(t=>t.confirmed).length}
 function iou(a,b){const area=Math.max(0,Math.min(a[0]+a[2],b[0]+b[2])-Math.max(a[0],b[0]))*Math.max(0,Math.min(a[1]+a[3],b[1]+b[3])-Math.max(a[1],b[1]));return area/(a[2]*a[3]+b[2]*b[3]-area||1)}
-function update(detections){const now=performance.now(),available=new Set(tracks);for(const d of detections){let match=null,best=.16;for(const t of available){const overlap=iou(t.box,d.box);if(t.key===d.key&&overlap>best){best=overlap;match=t}}if(match){available.delete(match);match.box=match.box.map((v,i)=>v*.25+d.box[i]*.75);match.seen=now}else{const el=document.createElement('div');el.className='box';el.style.setProperty('--color',ITEMS[d.key].color);overlay.append(el);tracks.push({id:nextId++,key:d.key,box:d.box,seen:now,el})}}tracks=tracks.filter(t=>{if(now-t.seen>450){t.el.remove();return false}return true});for(const t of tracks){const [x,y,w,h]=t.box;Object.assign(t.el.style,{left:`${x*100}%`,top:`${y*100}%`,width:`${w*100}%`,height:`${h*100}%`})}renderCounts()}
-async function detect(){if(tf.getBackend()!=='webgl')throw new Error('GPU acceleration is unavailable.');const crop=coverCrop(video.videoWidth,video.videoHeight,picture.clientWidth,picture.clientHeight);const scale=Math.min(1,640/Math.max(crop.width,crop.height));canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));ctx.drawImage(video,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);let input,result;try{input=tf.tidy(()=>tf.browser.fromPixels(canvas).expandDims(0));result=await model.executeAsync(input);const [scores,boxes]=await Promise.all([result[0].data(),result[1].data()]);const n=result[0].shape[1],classes=result[0].shape[2],candidates=[];for(let i=0;i<n;i++){let max=0,category=-1;for(let c=0;c<classes;c++){const s=scores[i*classes+c];if(s>max){max=s;category=c+1}}const key=activeKeys.find(k=>ITEMS[k].id===category);if(!key||max<ITEMS[key].threshold)continue;const b=i*4,y=Math.max(0,boxes[b]),x=Math.max(0,boxes[b+1]),y2=Math.min(1,boxes[b+2]),x2=Math.min(1,boxes[b+3]);if(x2>x&&y2>y)candidates.push({key,score:max,box:[x,y,x2-x,y2-y]})}candidates.sort((a,b)=>b.score-a.score);const selected=[];for(const c of candidates){if(!selected.some(s=>s.key===c.key&&iou(s.box,c.box)>.45))selected.push(c);if(selected.length>=40)break}return selected}finally{input?.dispose();if(result)tf.dispose(result)}}
+function update(detections){
+ const now=performance.now();
+ // Expire before matching so a stale box cannot revive a weak detection.
+ tracks=tracks.filter(t=>{if(now-t.seen>ITEMS[t.key].linger){t.el.remove();return false}return true});
+ const available=new Set(tracks),observedKeys=new Set();
+ for(const d of detections){
+  let match=null,best=d.key==='person'?.16:.10;
+  for(const t of available){const overlap=iou(t.rawBox,d.box);if(t.key===d.key&&(t.confirmed||d.score>=ITEMS[d.key].threshold)&&overlap>best){best=overlap;match=t}}
+  if(match){
+   available.delete(match);observedKeys.add(d.key);const weight=d.key==='person'?.65:.85;
+   match.box=match.box.map((v,i)=>v*(1-weight)+d.box[i]*weight);match.rawBox=d.box;match.seen=now;
+   // New people need two consecutive detections above the entry threshold.
+   if(!match.confirmed&&d.score>=ITEMS[d.key].threshold)match.confirmed=true;
+  }else if(d.score>=ITEMS[d.key].threshold){
+   observedKeys.add(d.key);
+   const el=document.createElement('div');el.className='box';el.style.setProperty('--color',ITEMS[d.key].color);overlay.append(el);
+   tracks.push({id:nextId++,key:d.key,box:d.box,rawBox:d.box,seen:now,confirmed:d.key!=='person',el});
+  }
+ }
+ // Fresh detections win over linger: never count unmatched echoes alongside them.
+ tracks=tracks.filter(t=>{if(available.has(t)&&(!t.confirmed||observedKeys.has(t.key))){t.el.remove();return false}return true});
+ for(const t of tracks){const [x,y,w,h]=t.box;t.el.hidden=!t.confirmed;Object.assign(t.el.style,{left:`${x*100}%`,top:`${y*100}%`,width:`${w*100}%`,height:`${h*100}%`})}
+ renderCounts();
+}
+async function detect(){if(tf.getBackend()!=='webgl')throw new Error('GPU acceleration is unavailable.');const crop=coverCrop(video.videoWidth,video.videoHeight,picture.clientWidth,picture.clientHeight);const scale=Math.min(1,640/Math.max(crop.width,crop.height));canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));ctx.drawImage(video,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);let input,result;try{input=tf.tidy(()=>tf.browser.fromPixels(canvas).expandDims(0));result=await model.executeAsync(input);const [scores,boxes]=await Promise.all([result[0].data(),result[1].data()]);const n=result[0].shape[1],classes=result[0].shape[2],candidates=[];for(let i=0;i<n;i++){let max=0,category=-1;for(let c=0;c<classes;c++){const s=scores[i*classes+c];if(s>max){max=s;category=c+1}}const key=activeKeys.find(k=>ITEMS[k].id===category);if(!key||max<ITEMS[key].trackingThreshold)continue;const b=i*4,y=Math.max(0,boxes[b]),x=Math.max(0,boxes[b+1]),y2=Math.min(1,boxes[b+2]),x2=Math.min(1,boxes[b+3]);if(x2>x&&y2>y)candidates.push({key,score:max,box:[x,y,x2-x,y2-y]})}candidates.sort((a,b)=>b.score-a.score);const selected=[];for(const c of candidates){if(!selected.some(s=>s.key===c.key&&iou(s.box,c.box)>.45))selected.push(c);if(selected.length>=40)break}return selected}finally{input?.dispose();if(result)tf.dispose(result)}}
 async function loop(now){requestAnimationFrame(loop);if(!ready||busy||failed||document.hidden||video.paused||video.seeking||video.readyState<2||now-lastInference<50||lastFrame===video.currentTime)return;busy=true;const token=generation,revision=viewRevision;lastInference=now;lastFrame=video.currentTime;try{const found=await detect();if(token===generation&&revision===viewRevision){update(found);notice.hidden=true;status('Live Detection','live')}}catch(e){if(token!==generation)return;console.error(e);failed=true;clear();status('Detection unavailable','error');message('Detection stopped. Try restarting the camera or demo.',true)}finally{busy=false}}
 async function source(next, switching=false){
  const token=++generation;mode=next;configureScene();failed=false;ready=false;clear();lastFrame=-1;

@@ -1,9 +1,11 @@
 // COCO category IDs (not the contiguous 80-class YOLO indices).
+// Entry thresholds reject new guesses; lower tracking thresholds only continue existing boxes.
+// Linger applies only when a class has no current accepted detections.
 export const ITEMS = {
- apple: { id: 53, label: 'Apples', color: '#ff5964', image: 'media/heb-apple.jpg', threshold: .48 },
- banana: { id: 52, label: 'Bananas', color: '#ffdc42', image: 'media/heb-banana.jpg', threshold: .48 },
- orange: { id: 55, label: 'Oranges', color: '#ffa632', image: 'media/heb-orange.jpg', threshold: .48 },
- person: { id: 1, label: 'People', color: '#766bff', image: 'media/people.svg', threshold: .60 }
+ apple: { id: 53, label: 'Apples', color: '#ff5964', image: 'media/heb-apple.jpg', threshold: .48, trackingThreshold: .32, linger: 180 },
+ banana: { id: 52, label: 'Bananas', color: '#ffdc42', image: 'media/heb-banana.jpg', threshold: .48, trackingThreshold: .32, linger: 180 },
+ orange: { id: 55, label: 'Oranges', color: '#ffa632', image: 'media/heb-orange.jpg', threshold: .48, trackingThreshold: .32, linger: 180 },
+ person: { id: 1, label: 'People', color: '#e1251b', image: 'media/people.svg', threshold: .60, trackingThreshold: .40, linger: 250 }
 };
 export const ENABLED = ['apple', 'banana', 'orange', 'person'];
 

@@ -1,4 +1,4 @@
-# Session handoff — September 26, 2026
+# Session handoff — September 27, 2026
 
 ## Start here
 
@@ -6,9 +6,9 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest app change: zero-count item rows fade to 25% opacity, returning to full opacity for positive counts over 250 ms. Reduced-motion preferences disable the transition.
-- Corresponding immutable deployment: https://661436d6.cv-basics.pages.dev/ (app commit `c396e13`).
-- Deployed with `npm run deploy`. Local and deployed browser checks confirmed 25% opacity at zero, the 250 ms transition and live detection on both new H-E-B clips.
+- Latest app changes: remove stale detection echoes, shorten linger, allow lower-confidence continuation of existing tracks, confirm new people across two detections, and use subtle white box fills with red people outlines. Zero-count rows remain at 25% opacity.
+- Previous immutable deployment: https://661436d6.cv-basics.pages.dev/ (app commit `c396e13`); tracking update is ready to deploy.
+- Publish tracking changes with `npm run deploy`, then verify the live app.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
@@ -32,9 +32,15 @@ Eight separately selectable demos are configured:
 
 Each entry in `dist/config.js` has its own class list and description. Fruit demos count apples, bananas and oranges only, preventing hands classified as people from affecting the fruit total. The supermarket scene counts detected people currently in view; it is not cumulative footfall or store occupancy. Camera mode offers Fruit / People and changes class filters without reopening the camera. All displayed counts are model output, never scripted.
 
-Keep existing model thresholds: fruit .48, people .60. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Tracking uses the original 450 ms linger; box interpolation is 50 ms. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v12` with 32 manifest entries, including both new clips and posters.
+New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with 50 ms CSS interpolation. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v13` with 32 manifest entries, including both new clips and posters.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Ledger fruit images are locally bundled H-E-B photos; the people icon is an original SVG.
+
+## September 27 tracking adjustments
+
+Ian reported people misses/false positives, an orange box hanging mid-air, and duplicate echoes when a new ID replaced an old one. Keep changes in the existing detector/tracker, with no new runtime infrastructure or model. New people boxes require confirmation; lower continuation thresholds reduce flicker; current detections take priority over linger. Boxes have a subtle 5% white fill, and people use `#e1251b` red. Empty ledger rows remain at 25% opacity.
+
+A local frame inspection compared the 640 px preprocessing cap against the full visible crop (about 967×720 in the desktop check). Sampled people detections were nearly unchanged. The bundled graph internally resizes both inputs to 300×300, verified from its resize constant. Keep the 640 px cap. The orange coming from the bag had low-confidence detections around .34–.36 after placement, so do not promise perfect tracking through the hand occlusion. In separate 180-update desktop playback checks, the people baseline had stale tracks alongside fresh detections in 108 updates; the tuned version had zero. Early-scene transient fourth-person counts disappeared in the tuned sample. The final 180-update produce check also had zero stale boxes alongside fresh detections of the same class. The orange box disappears during low-confidence rapid movement instead of hanging mid-air; it is not continuously detected throughout placement. This is a focused spot check, not a general accuracy benchmark; small/occluded people remain imperfect. Temporary inspection pages and frame captures stay ignored in `reference/tuning/`; no diagnostic code ships.
 
 ## New H-E-B demos
 
