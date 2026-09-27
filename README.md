@@ -15,8 +15,10 @@ Camera mode has a flip button that requests the opposite facing camera, with ano
 
 ## Deploy to Cloudflare Pages
 
+Live site: https://cv-basics.pages.dev/
+
 Install Node.js 22 or newer, then run `npm ci`. Sign in once with `npx wrangler login`.
-For the initial account setup, create the Pages project with `npx wrangler pages project create cv-basics --production-branch=main`.
+The `cv-basics` Pages project is already created. For a new account only, create it with `npx wrangler pages project create cv-basics --production-branch=main --force` (`--force` keeps initial setup on Pages instead of redirecting it to Workers).
 Publish the current local app with `npm run deploy`. This uploads only `dist/`, including the bundled model and videos; there is no build step or GitHub deployment workflow.
 Wrangler prints the deployment URL when it finishes. Credentials stay in Wrangler's local configuration, outside this repository.
 
