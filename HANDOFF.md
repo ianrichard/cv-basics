@@ -7,8 +7,8 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
 - Latest app changes: curate to five demos, slow Checkout belt to half speed in the source, and cycle automatically with fades. Tracking tuning, red people outlines, subtle white box fills and 25% empty rows remain.
-- Previous immutable deployment: https://dd099921.cv-basics.pages.dev/ (app commit `08f09c7`); the playlist update is ready for deployment.
-- Publish the playlist update using `npm run deploy`, then verify live playback.
+- Corresponding immutable deployment: https://d80b4ef3.cv-basics.pages.dev/ (app commit `b199d41`).
+- Published with `npm run deploy`. The deployed app shows five demos; Checkout belt plays the 19.966667-second source with live detection, full opacity after its fade, and no console errors.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
