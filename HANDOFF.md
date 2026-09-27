@@ -6,9 +6,9 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest app commit: `64b870f` (Restore Gemini fruit clips for curation).
-- Corresponding immutable deployment: https://34154f71.cv-basics.pages.dev/
-- Latest session changes after that app deployment are documentation and image-generation assets only. No newer app changes are pending.
+- Latest app change: zero-count item rows fade to 50% opacity, returning to full opacity for positive counts over 250 ms. Reduced-motion preferences disable the transition.
+- Corresponding immutable deployment: https://87fd803c.cv-basics.pages.dev/
+- The opacity change is deployed. Local browser checks confirmed 50% opacity at zero and full opacity at positive counts; the detector still runs.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
@@ -30,7 +30,7 @@ Six separately selectable demos are currently live:
 
 Each entry in `dist/config.js` has its own class list and description. Fruit demos count apples, bananas and oranges only, preventing hands classified as people from affecting the fruit total. The supermarket scene counts detected people currently in view; it is not cumulative footfall or store occupancy. Camera mode offers Fruit / People and changes class filters without reopening the camera. All displayed counts are model output, never scripted.
 
-Keep existing model thresholds: fruit .48, people .60. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Tracking uses the original 450 ms linger; box interpolation is 50 ms. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v10` with 28 manifest entries.
+Keep existing model thresholds: fruit .48, people .60. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Tracking uses the original 450 ms linger; box interpolation is 50 ms. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v11` with 28 manifest entries. The app and stylesheet manifest URLs are versioned for this update.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Ledger fruit images are locally bundled H-E-B photos; the people icon is an original SVG.
 
