@@ -8,6 +8,8 @@ export const ITEMS = {
 export const ENABLED = ['apple', 'banana', 'orange', 'person'];
 
 export const DEMOS = [
+ {key:'checkout-belt',label:'Checkout belt',src:'media/checkout-belt.mp4',poster:''},
+ {key:'fruit-display',label:'Fruit display',src:'media/fruit-display.mp4',poster:''},
  {key:'produce',label:'Produce',src:'media/produce.mp4',poster:'media/produce-poster.jpg'},
  {key:'checkout',label:'Checkout',src:'media/checkout.mp4',poster:'media/checkout-poster.jpg'},
  {key:'conveyor',label:'Conveyor',src:'media/conveyor.mp4',poster:'media/conveyor-poster.jpg'},

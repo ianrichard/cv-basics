@@ -20,9 +20,13 @@ The app also includes posters and four thumbnails in `dist/media/`. Exact titles
 - From the extracted project folder: `python3 -m http.server 8000 --directory dist`, then open `http://localhost:8000`.
 - For static hosting, publish the **contents** of `dist/` at the web root over HTTPS. No build or backend is needed.
 - Camera access needs HTTPS or localhost. Detection requires WebGL; it will show an error instead of silently falling back to CPU.
-- Keep `model/`, `vendor/`, `media/`, `sw.js` and `offline-assets.json` together. Wait for “Ready for offline use,” then test a reload with networking off on the actual event device.
+- Keep `model/`, `vendor/`, `media/`, `sw.js` and `offline-assets.json` together. Allow the first load to finish caching, then reload with networking off on the actual event device.
 - To change recognized classes and thresholds, edit `dist/config.js`. Recheck the offline service-worker cache version in `dist/sw.js` when republishing changed assets.
 
 ## Scope of source
 
 `dist/app.js`, `dist/config.js`, `dist/geometry.js`, `dist/style.css`, `dist/index.html` and the service worker are the editable app source. `dist/vendor/tf.min.js` and `dist/model/` are locally bundled third-party runtime/model artifacts. No credentials, employer systems, site deployment metadata, or private repository history are in this archive.
+
+## User-provided Gemini clips
+
+`dist/media/checkout-belt.mp4` and `dist/media/fruit-display.mp4` are the original 10-second, 1280×720 Gemini-generated videos supplied by Ian Smith. The source files remain in the Git-ignored `reference/` folder.

@@ -9,7 +9,7 @@ Static, browser-local COCO object detection. No API key, build, backend, or runt
 
 Run `python3 -m http.server 8000 --directory dist` and visit http://localhost:8000. Camera access requires localhost or HTTPS. Do not open index.html via file://.
 
-For another static host (including here.now), upload the contents of `dist`. Keep all paths together. The runtime, five model shards, video and images are bundled. Use HTTPS and serve sw.js with revalidation/no-cache. Wait for “Ready for offline use” before disconnecting, then reload once offline to confirm on the event device. Browser cache eviction can remove offline assets; a downloaded copy served on localhost is the most dependable event fallback.
+For another static host (including here.now), upload the contents of `dist`. Keep all paths together. The runtime, five model shards, video and images are bundled. Use HTTPS and serve sw.js with revalidation/no-cache. Allow the first load to finish caching, then reload once offline to confirm on the event device. Browser cache eviction can remove offline assets; a downloaded copy served on localhost is the most dependable event fallback.
 
 Camera mode has a flip button that requests the opposite facing camera, with another available camera as fallback. A device with only one camera keeps its current feed.
 
@@ -31,7 +31,7 @@ Edit dist/config.js: each class has its COCO category ID, display label, color, 
 
 The model is TensorFlow's SSD Lite MobileNet V2. TensorFlow.js 4.22.0 executes on WebGL only, with CPU forwarding disabled. There is no CPU inference fallback. Lightweight JavaScript postprocessing handles class filtering, NMS and tracking. Video fills the stage with a centered cover crop. Inference uses the exact visible crop, capped at 640 pixels on its longest side; only one inference runs at once, targeting at most 10 updates per second. Video plays independently. Tracks linger up to 450 ms through missed detections. DOM boxes interpolate positions.
 
-Demo mode offers Produce, Checkout, Conveyor and People stock footage and runs the same model as Camera. The conveyor close-up mainly contains packaged products outside the enabled classes, so low or zero counts can be expected. Fruit can be tested through Camera. All counts are model output, never scripted. Sources and media licenses are in dist/credits.html.
+Demo mode starts with the Gemini-generated Checkout belt clip, with Fruit display and the original Produce, Checkout, Conveyor and People stock footage also available. All clips run the same model as Camera. The conveyor close-up mainly contains packaged products outside the enabled classes, so low or zero counts can be expected. Fruit can be tested through Camera. All counts are model output, never scripted. Sources and media licenses are in [dist/credits.html](dist/credits.html).
 
 ## Validation and limits
 

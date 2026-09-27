@@ -61,16 +61,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){clear();st
 window.addEventListener('pagehide',()=>{generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});
 async function init(){source('demo');try{if(!window.tf)throw new Error('Runtime missing');tf.env().set('WEBGL_CPU_FORWARD',false);if(!await tf.setBackend('webgl'))throw new Error('WebGL unavailable');await tf.ready();if(tf.getBackend()!=='webgl')throw new Error('WebGL unavailable');model=await tf.loadGraphModel('model/model.json');const warm=tf.zeros([1,300,300,3],'int32');let result;try{result=await model.executeAsync(warm);await Promise.all(result.map(t=>t.data()))}finally{warm.dispose();if(result)tf.dispose(result)}ready=video.readyState>=2&&!video.paused;if(ready){notice.hidden=true;status('Live Detection','live')}requestAnimationFrame(loop)}catch(e){console.error(e);failed=true;status('GPU unavailable','error');message('GPU detection could not start. Enable hardware acceleration and try again in a supported browser.',true)}}
 if('serviceWorker' in navigator){
- const offline=document.querySelector('#offline');
- offline.textContent='Preparing offline access…';
  const hadController=Boolean(navigator.serviceWorker.controller);let reloading=false;
  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadController&&!reloading){reloading=true;location.reload()}});
- navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(async registration=>{
-  function watch(worker){offline.textContent='Preparing offline access…';worker.addEventListener('statechange',()=>{if(worker.state==='activated')offline.textContent='Ready for offline use';if(worker.state==='redundant')offline.textContent='Offline setup incomplete'})}
-  if(registration.installing)watch(registration.installing);
-  registration.addEventListener('updatefound',()=>{if(registration.installing)watch(registration.installing)});
-  await navigator.serviceWorker.ready;
-  if(!registration.installing)offline.textContent='Ready for offline use';
- }).catch(()=>{offline.textContent='Offline setup unavailable'});
+ navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(error=>console.warn('Offline setup unavailable',error));
 }
 init();
