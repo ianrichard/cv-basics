@@ -7,8 +7,8 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
 - Latest direction: emphasize recognition, not quantity. Remove all numeric counts, the total, row dividers and scene captions; enlarge item images and labels, with 500 ms opacity transitions. Five-clip autoplay and the detector remain unchanged.
-- Previous immutable deployment: https://d80b4ef3.cv-basics.pages.dev/ (app commit `b199d41`); recognition-only display is ready to deploy.
-- Recognition-only display spot-checked locally at desktop and 390 px widths: no numbers or captions, larger images/labels, 500 ms transitions, no horizontal overflow or console errors. Publish with `npm run deploy`.
+- Corresponding immutable deployment: https://7b875994.cv-basics.pages.dev/ (app commit `0e0c848`).
+- Published with `npm run deploy`. Recognition-only display checked locally at desktop and 390 px widths and on the deployed site: no numbers or captions, larger images/labels, 500 ms transitions, active detection and no console errors. No horizontal overflow on mobile.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
 
 ## User priorities and preferences
