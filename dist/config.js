@@ -5,8 +5,8 @@ export const ITEMS = {
  apple: { id: 53, label: 'Apples', color: '#ff5964', image: 'media/heb-apple.jpg', threshold: .48, trackingThreshold: .32, linger: 180 },
  banana: { id: 52, label: 'Bananas', color: '#ffdc42', image: 'media/heb-banana.jpg', threshold: .48, trackingThreshold: .32, linger: 180 },
  orange: { id: 55, label: 'Oranges', color: '#ffa632', image: 'media/heb-orange.jpg', threshold: .48, trackingThreshold: .32, linger: 180 },
- person: { id: 1, label: 'People', color: '#e1251b', image: 'media/people.svg', threshold: .60, trackingThreshold: .40, linger: 250 },
- car: { id: 3, label: 'Cars', color: '#78b9ef', image: 'media/car.svg', threshold: .60, trackingThreshold: .40, linger: 250 }
+ person: { id: 1, label: 'People', color: '#e1251b', image: 'media/person.png', threshold: .60, trackingThreshold: .40, linger: 250 },
+ car: { id: 3, label: 'Cars', color: '#78b9ef', image: 'media/car.png', threshold: .60, trackingThreshold: .40, linger: 250 }
 };
 export const ENABLED = ['apple', 'banana', 'orange', 'person', 'car'];
 

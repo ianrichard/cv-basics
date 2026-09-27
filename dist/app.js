@@ -15,7 +15,8 @@ let cameraFilters=[...GROUPS.produce.items,...GROUPS.people.items];
 let activeKeys=[...DEMOS[0].items];
 const requestedSample=new URL(location.href).searchParams.get('sample');
 let selectedDemo=DEMOS.find(d=>d.key===(requestedSample==='curbside-photo'?'curbside':requestedSample))?.key||DEMOS[0].key, facing='environment', cameraDevices=[], activeDeviceId='';
-let viewRevision=0;
+let viewRevision=0,activeView='demo',viewTransition=0,sceneTransition=false;
+const isLiveView=()=>activeView==='demo'||activeView==='camera';
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;
 let detectionFPS=8,lastTrackingUpdate=0;
@@ -32,7 +33,7 @@ for(const [key,group] of Object.entries(GROUPS)){
  input.addEventListener('change',()=>{
   const keys=[...detectionOptions.querySelectorAll('input:checked')].filter(i=>!i.closest('label').hidden).flatMap(i=>GROUPS[i.dataset.group].items);
   if(mode==='camera')cameraFilters=keys;else demoFilters.set(selectedDemo,keys);
-  configureScene();viewRevision++;lastFrame=-1;detectionActive=false;imagePending=true;imageAnalyzed=false;clear();refreshStatus();
+  configureScene();sceneTransition=false;viewRevision++;lastFrame=-1;detectionActive=false;imagePending=true;imageAnalyzed=false;clear();refreshStatus();
  });
 }
 function configureScene(){
@@ -61,23 +62,33 @@ function status(text,state='loading'){
 function statusDuration(){return matchMedia('(prefers-reduced-motion: reduce)').matches?0:250}
 let lastPresentation='';
 function refreshStatus(){
+ if(!isLiveView())return;
  let text,state='loading',canRetry=false;
  // Model failure > detection failure > source failure > loading > active processing.
  if(modelState==='error'){text='Model didn’t load 😕';state='error';canRetry=true}
  else if(failed){text='Detection stopped 😕';state='error';canRetry=true}
  else if(sourceState==='error'){text=sourceError;state='error';canRetry=true}
  else if(modelState!=='ready'){text='Loading Computer Vision'}
+ else if(sceneTransition){text='';state='loading'}
  else if(sourceState==='permission')text='Allow Camera Access';
  else if(sourceState==='loading')text=mode==='camera'?'Loading Camera':'Loading Demo';
  else if(!activeKeys.length){text='Select items to detect';state='idle'}
  else if(isImage()&&!document.hidden){text=imageAnalyzed?'Detected':'Loading Demo';state=imageAnalyzed?'complete':'loading'}
  else if(document.hidden||(video.paused&&!(video.ended&&playback.seconds))){text='Detection paused';state='idle'}
  else if(video.readyState<2||video.seeking||!detectionActive)text=mode==='camera'?'Loading Camera':'Loading Demo';
- else{text='Detecting';state='live'}
+ else{text=detectionTitle();state='live'}
  const presentation=JSON.stringify([text,state,canRetry]);
  if(presentation===lastPresentation)return;lastPresentation=presentation;
  status(text,state);
  retry.hidden=!canRetry;
+}
+function detectionTitle(){
+ const groups=[];
+ if(GROUPS.produce.items.some(key=>activeKeys.includes(key)))groups.push('fruit');
+ if(activeKeys.includes('person'))groups.push('people');
+ if(activeKeys.includes('car'))groups.push('cars');
+ if(groups.length===1&&groups[0]==='fruit')return 'Looking for\nfruit';
+ return `Detecting\n${groups.length===3?'fruit, people & cars':groups.join(' and ')}`;
 }
 function clear(){lastTrackingUpdate=0;tracks=[];overlay.replaceChildren();renderRecognition()}
 function renderRecognition(){for(const row of rows.children){const detected=tracks.some(t=>t.confirmed&&t.key===row.dataset.key);if(row.classList.contains('empty')===detected){row.classList.toggle('empty',!detected);row.setAttribute('aria-label',`${ITEMS[row.dataset.key].label}: ${detected?'detected':'not currently detected'}`)}}}
@@ -110,23 +121,25 @@ function update(detections,still=false){
 async function detect(){if(tf.getBackend()!=='webgl')throw new Error('GPU acceleration is unavailable.');const media=isImage()?sampleImage:video;const crop=isImage()?{x:0,y:0,width:sampleImage.naturalWidth,height:sampleImage.naturalHeight}:coverCrop(video.videoWidth,video.videoHeight,picture.clientWidth,picture.clientHeight);const scale=Math.min(1,640/Math.max(crop.width,crop.height));canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));ctx.drawImage(media,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);let input,result;try{input=tf.tidy(()=>tf.browser.fromPixels(canvas).expandDims(0));result=await model.executeAsync(input);const [scores,boxes]=await Promise.all([result[0].data(),result[1].data()]);const n=result[0].shape[1],classes=result[0].shape[2],candidates=[];for(let i=0;i<n;i++){let max=0,category=-1;for(let c=0;c<classes;c++){const s=scores[i*classes+c];if(s>max){max=s;category=c+1}}const key=activeKeys.find(k=>ITEMS[k].id===category);if(!key||max<ITEMS[key].trackingThreshold)continue;const b=i*4,y=Math.max(0,boxes[b]),x=Math.max(0,boxes[b+1]),y2=Math.min(1,boxes[b+2]),x2=Math.min(1,boxes[b+3]);if(x2>x&&y2>y)candidates.push({key,score:max,box:[x,y,x2-x,y2-y]})}candidates.sort((a,b)=>b.score-a.score);const selected=[];for(const c of candidates){if(!selected.some(s=>s.key===c.key&&iou(s.box,c.box)>.45))selected.push(c);if(selected.length>=40)break}return selected}finally{input?.dispose();if(result)tf.dispose(result)}}
 async function loop(now){
  requestAnimationFrame(loop);
+ if(!isLiveView())return;
  if(!isImage()&&sourceState==='ready'&&!document.hidden)playback.tick(now);
  if(!ready||busy||failed||!activeKeys.length||document.hidden)return;
  if(isImage()){if(!imagePending)return;imagePending=false}
  else if(video.paused||video.seeking||video.readyState<2||now-lastInference<1000/detectionFPS||lastFrame===video.currentTime)return;
  busy=true;const token=generation,revision=viewRevision;lastInference=now;lastFrame=video.currentTime;
- try{const found=await detect();if(token===generation&&revision===viewRevision){update(found,isImage());detectionActive=true;if(isImage())imageAnalyzed=true;refreshStatus()}}
+ try{const found=await detect();if(token===generation&&revision===viewRevision){update(found,isImage());detectionActive=true;sceneTransition=false;if(isImage())imageAnalyzed=true;refreshStatus()}}
  catch(e){if(token!==generation||revision!==viewRevision)return;console.error(e);failed=true;detectionActive=false;clear();refreshStatus()}
  finally{busy=false}
 }
 async function source(next, switching=false, clipKey=selectedDemo){
  const fade=next==='demo'&&mode==='demo'&&sourceState==='ready';
+ sceneTransition=fade;
  clearTimeout(endedTimer);
  const token=++generation;mode=next;ready=false;sourceState='loading';sourceError='';failed=false;detectionActive=false;video.pause();
  selectedDemo=clipKey;imagePending=true;imageAnalyzed=false;configureScene();clear();refreshStatus();
- for(const key of ['camera','demo'])document.querySelector('#'+key).setAttribute('aria-pressed',String(key===next));
+
  picture.classList.toggle('fading',next==='demo');
- if(fade&&!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,320));
+ if(fade&&isLiveView()&&!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,320));
  if(token!==generation)return;
  lastFrame=-1;playback.reset();flip.hidden=next!=='camera';flip.disabled=true;
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
@@ -159,6 +172,8 @@ async function source(next, switching=false, clipKey=selectedDemo){
    const clip=DEMOS.find(d=>d.key===selectedDemo);video.poster=clip.poster;video.src=clip.src;
   }
   if(!isImage())await video.play();if(token!==generation)return;
+  if(!isLiveView())video.pause();
+  if(!activeKeys.length)sceneTransition=false;
   sourceState='ready';ready=modelState==='ready';flip.disabled=cameraDevices.length<2;
   requestAnimationFrame(()=>{if(token===generation)picture.classList.remove('fading')});refreshStatus();
  }catch(e){
@@ -194,10 +209,10 @@ for(const control of [fpsControl,glowControl,fillControl,fillOpacity,delayContro
 applyTuning();
 function finishPlayback(){
  clearTimeout(endedTimer);
- if(mode!=='demo'||isImage()||failed||sourceState==='error')return;
+ if(!isLiveView()||mode!=='demo'||isImage()||failed||sourceState==='error')return;
  const token=generation;
  endedTimer=setTimeout(()=>{
-  if(token!==generation||failed||sourceState==='error')return;
+  if(token!==generation||!isLiveView()||failed||sourceState==='error')return;
   const clips=DEMOS.filter(d=>d.type!=='image');
   const next=autoRotate.checked?clips[(clips.findIndex(d=>d.key===selectedDemo)+1)%clips.length].key:selectedDemo;
   source('demo',false,next);
@@ -208,15 +223,37 @@ video.addEventListener('ended',finishPlayback);
 video.addEventListener('seeking',()=>{if(isImage())return;playback.reset();viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
 for(const event of ['pause','playing','waiting','seeked'])video.addEventListener(event,()=>{if(isImage())return;if(event==='waiting')detectionActive=false;refreshStatus()});
 video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Sample video didn’t load 😕';detectionActive=false;clear();refreshStatus()}});
-for(const key of ['camera','demo'])document.querySelector('#'+key).addEventListener('click',()=>source(key));
-const settings=document.querySelector('#settings');
-document.querySelector('#open-settings').addEventListener('click',()=>{settings.showModal();document.body.classList.add('settings-open')});
-document.querySelector('#close-settings').addEventListener('click',()=>settings.close());
-settings.addEventListener('close',()=>document.body.classList.remove('settings-open'));
-let backdropPress=false;
-const outsideSettings=event=>{const r=settings.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom};
-settings.addEventListener('pointerdown',event=>{backdropPress=outsideSettings(event)});
-settings.addEventListener('pointerup',event=>{if(backdropPress&&outsideSettings(event))settings.close();backdropPress=false});
+const mainView=document.querySelector('#main-view');
+async function showView(next){
+ const token=++viewTransition;
+ if(next===activeView&&!mainView.classList.contains('view-fading'))return;
+ mainView.classList.add('view-fading');mainView.inert=true;
+ if(!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,250));
+ if(token!==viewTransition)return;
+ const previous=activeView;activeView=next;
+ const live=isLiveView();
+ document.querySelector('#live-view').hidden=!live;
+ document.querySelector('#settings-view').hidden=next!=='settings';
+ document.querySelector('#about-view').hidden=next!=='about';
+ for(const key of ['demo','camera','settings','about'])document.querySelector('#'+key).setAttribute('aria-pressed',String(key===next));
+ // Hidden views do no inference or delayed-frame copying. Keep the source for return.
+ clearTimeout(endedTimer);playback.reset();viewRevision++;clear();lastFrame=-1;
+ if(!live){video.pause()}
+ else if(next!==mode||sourceState==='error'){source(next)}
+ else if(previous==='settings'||previous==='about'){
+  sceneTransition=false;imagePending=true;imageAnalyzed=false;
+  if(!isImage()){
+   if(video.ended)source(next);
+   else video.play().catch(()=>source(next));
+  }
+ }
+ window.scrollTo({top:0,behavior:'instant'});
+ mainView.inert=false;
+ // Allow the new content to lay out at zero opacity before fading it in.
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===viewTransition)mainView.classList.remove('view-fading')}));
+ refreshStatus();
+}
+for(const key of ['demo','camera','settings','about'])document.querySelector('#'+key).addEventListener('click',()=>showView(key));
 retry.addEventListener('click',()=>modelState==='error'?location.reload():source(mode));
 document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear();detectionActive=false}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
 window.addEventListener('pagehide',()=>{clearTimeout(endedTimer);playback.reset();generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});
