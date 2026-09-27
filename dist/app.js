@@ -10,7 +10,8 @@ const detectionOptions=document.querySelector('#detection-options'), autoRotate=
 const demoFilters=new Map(DEMOS.map(d=>[d.key,[...d.items]]));
 let cameraFilters=[...GROUPS.produce.items,...GROUPS.people.items];
 let activeKeys=[...DEMOS[0].items];
-let selectedDemo=DEMOS.find(d=>d.key===new URL(location.href).searchParams.get('sample'))?.key||DEMOS[0].key, facing='environment', cameraDevices=[], activeDeviceId='';
+const requestedSample=new URL(location.href).searchParams.get('sample');
+let selectedDemo=DEMOS.find(d=>d.key===(requestedSample==='curbside-photo'?'curbside':requestedSample))?.key||DEMOS[0].key, facing='environment', cameraDevices=[], activeDeviceId='';
 let viewRevision=0;
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;

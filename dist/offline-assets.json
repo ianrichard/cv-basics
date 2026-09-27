@@ -1,11 +1,11 @@
 [
   "./",
   "index.html?v=18",
-  "config.js?v=17",
+  "config.js?v=19",
   "icon.svg",
-  "app.js?v=18",
+  "app.js?v=19",
   "manifest.webmanifest",
-  "credits.html?v=17",
+  "credits.html?v=19",
   "geometry.js",
   "style.css?v=18",
   "model/model.json",
@@ -27,5 +27,6 @@
   "media/heb-produce.mp4",
   "media/heb-produce-poster.jpg",
   "media/car.svg",
-  "media/curbside.jpg"
+  "media/curbside.mp4",
+  "media/curbside-poster.jpg"
 ]

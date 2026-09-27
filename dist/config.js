@@ -24,5 +24,5 @@ export const DEMOS = [
  {key:'add-banana',label:'Add banana',src:'media/add-banana.mp4',poster:'',items:['apple','banana','orange']},
  {key:'remove-orange',label:'Remove orange',src:'media/remove-orange.mp4',poster:'',items:['apple','banana','orange']},
  {key:'checkout-belt',label:'Checkout belt',src:'media/checkout-belt.mp4',poster:'',items:['apple','banana','orange']},
- {key:'curbside-photo',label:'Curbside photo',type:'image',src:'media/curbside.jpg',items:['car','person']},
+ {key:'curbside',label:'Curbside',src:'media/curbside.mp4',poster:'media/curbside-poster.jpg',items:['car','person']},
 ];

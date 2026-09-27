@@ -6,7 +6,7 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest direction: default object glow off, restore roomier mobile padding, and provide temporary display/performance tuning controls. Still-image evaluation, simple animated status, sticky mobile video and below-screen debugging remain. Detection groups are per-sample presets; live camera independently defaults to People + Produce. Cars is available for sample footage, off by default. Auto-rotate is checked by default; uncheck to loop the current clip. Recognition remains presence-only.
+- Latest direction: default object glow off, restore roomier mobile padding, and provide temporary display/performance tuning controls. The curbside photo is replaced by a Cars + People video in the automatic playlist; generic image support remains. Simple animated status, sticky mobile video and below-screen debugging remain. Detection groups are per-sample presets; live camera independently defaults to People + Produce. Cars is enabled for Curbside and off in the other samples. Auto-rotate is checked by default; uncheck to loop the current clip. Recognition remains presence-only.
 - Current immutable deployment: https://f4d430a3.cv-basics.pages.dev/ (app commit `d773ea6`). Published with `npm run deploy`; production browser check confirmed active detection and Display tuning defaults: glow off, Max (20 FPS), background on at 7%, with no console errors.
 - Publish with `npm run deploy`. Status/mobile controls checked locally at desktop, 390 px and 320 px widths: active detection, no overflow, debug controls below the first mobile viewport, sticky video, per-sample filter retention and independent camera controls. Auto-rotation advanced through clips; disabling it enabled native single-video looping. Deliberately missing model/video assets confirmed error priority and a steady red dot. No console errors during normal playback. Physical camera capture remains to be checked on the event device.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
@@ -19,13 +19,14 @@ Stability and performance first, then curation and simplification. Avoid new fea
 
 `dist/` contains source and deployable files. TensorFlow.js 4.22.0 and SSD Lite MobileNet V2 are bundled locally. There are no API keys, backend or runtime CDN dependencies.
 
-Five demos now form an automatic repeating playlist:
+Six demos now form an automatic repeating playlist:
 
 1. H-E-B people — default; Gemini checkout scene, people counting only.
 2. H-E-B produce — Gemini fruit-on-table scene.
 3. Add banana — Gemini clip.
 4. Remove orange — Gemini clip.
 5. Checkout belt — Gemini clip, now half speed in the source (about 20 seconds).
+6. Curbside — Gemini Cars + People clip, replacing the static photo (6.83 seconds).
 
 Expo fruit, Supermarket and Fruit display were removed from the app and offline cache at Ian's request. Their media and posters are preserved locally under ignored `reference/retired-sep27/`.
 
@@ -33,7 +34,7 @@ At each clip's end the video and boxes fade out over 320 ms, the next clip loads
 
 Each entry in `dist/config.js` has its own class list. Fruit demos recognize apples, bananas and oranges only; people mode recognizes people. The sidebar now shows presence rather than counts: images and labels brighten to full opacity for confirmed detections and dim to 25% otherwise, over 500 ms. Images are 72 px desktop / 80 px wide / 64 px small, and labels are 23–29 px. Numeric counts, total, row dividers and scene captions are removed to keep the summit presentation focused on recognition. Accessible item labels also indicate detected/not currently detected. Camera mode offers independent Produce / People checkboxes and changes class filters without reopening the camera. All recognition is model output, never scripted.
 
-New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with 50 ms CSS interpolation. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v18` with 29 manifest entries, including both new clips and posters.
+New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with 50 ms CSS interpolation. WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v19` with 30 manifest entries, including both new clips and posters.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Recognition-list fruit images are locally bundled H-E-B photos; the people icon is an original SVG.
 
@@ -47,7 +48,17 @@ The FPS slider caps video/camera inference scheduling, not video playback speed 
 
 Track matching now allows the immediately preceding observation across the actual interval between detection updates. This prevents low FPS from expiring an unconfirmed person before its second observation. Unmatched tracks still use their original linger, and current detections still remove stale same-class echoes. Entry/continuation thresholds, model and input resolution are unchanged. Browser spot checks verified 4 FPS with 250 ms transitions, 2 FPS with 500 ms transitions and confirmed people, glow switching, fill/opacity switching, and 24 px padding with no horizontal overflow at 390 px and 320 px. Normal playback produced no console errors.
 
-## September 27 curbside image evaluation
+## September 27 curbside video replacement
+
+Drive Temp `gemini_generated_video_B7C6C377.mov` replaces the static Curbside photo. Its original stays in ignored `reference/curbside/`. The shipped silent 1280×720 H.264/yuv420p MP4 is 6.83 seconds, 685,538 bytes (65.8% smaller than the 2,004,601-byte source), CRF 23, fast start and source metadata removed. Its poster is extracted at 0.1 seconds, 74,294 bytes.
+
+The final playlist entry is now **Curbside**, preset to Cars + People, with ordinary autoplay/loop behavior. Open `/?sample=curbside`; the old `/?sample=curbside-photo` link aliases to this video. It advances back to H-E-B people when auto-rotate is checked; unchecking loops Curbside. The old shipped photo moved to ignored `reference/curbside/curbside-evaluation.jpg` and is removed from deployment/offline cache. Generic image support remains for future evaluation. No detector or display settings changed.
+
+Local desktop and 390 px mobile checks recognized cars and the person during playback, with no console errors. Boxes remain approximate during motion/occlusion. The compressed media decoded successfully.
+
+## Historical September 27 curbside image evaluation
+
+The following describes the earlier photo check; the video above now replaces it in the app.
 
 Drive Temp `IMG_2986.JPG` is a 1920×1280 curbside photo showing two cars and one person. The original stays in ignored `reference/curbside/`; the shipped `media/curbside.jpg` is a 187,474-byte JPEG re-encoded without source metadata. Provenance is user-supplied; do not describe this photo as AI-generated.
 
@@ -110,7 +121,7 @@ All were made with the built-in image-generation tool. Each prompt text file inc
 - Automatic cycling with fades is now implemented using the existing `DEMOS` order. Per-clip trims and a combined montage are not implemented.
 - Expo fruit, Supermarket and Fruit display are retired at Ian’s request. Original/retired media remain local-only. Older solo-shopper footage also remains out of the lineup.
 - The new H-E-B people and produce videos are added; keep them available for curation. The real supermarket scene is now retired.
-- Car detection is configured (COCO class 3). The manual Curbside photo sample enables Cars + People; the five videos still do not enable Cars. Ian is evaluating the photo before generating curbside footage. Camera mode deliberately excludes Cars.
+- Curbside video is now in the six-clip playlist with Cars + People enabled. The static photo is retired locally. Camera mode deliberately excludes Cars.
 
 ## Files and local-only references
 
