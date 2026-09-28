@@ -6,7 +6,7 @@ This is Ian's standalone computer-vision demo for an H-E-B front-end service sum
 
 - Public repository: https://github.com/ianrichard/cv-basics
 - Live app: https://cv-basics.pages.dev/
-- Latest direction: follow the latest Drive Temp mockup. Mobile header is Explore Computer Vision + ⋮ only; video, story and single vertical item stack follow. Bottom source picker has overflowing thumbnails and a separate fixed Camera button on the right. Desktop video fills the left column, with header, a healthy 48 px gap, story/items and bottom source picker in the right column. No Detecting text/dot; centered padded messages only for model startup, camera permission and errors. Settings/About open in a dark frosted desktop modal/mobile sheet; ⋮ has no active appearance. About uses the complete supplied Google Doc copy, with wrapping technical details. Detector and mobile video proportions remain unchanged.
+- Latest direction: follow the latest Drive Temp mockup. Mobile header is Explore Computer Vision + ⋮ only; video, story and single vertical item stack follow. Bottom source picker has overflowing thumbnails and a separate fixed Camera button on the right. Desktop video and source picker share the left column; the right header has 24 px vertical padding, and story/items are centered together in the remaining right-column space. No Detecting text/dot; centered padded messages only for model startup, camera permission and errors. Settings/About open in a dark frosted desktop modal/mobile sheet; ⋮ has no active appearance. About uses the complete supplied Google Doc copy, with wrapping technical details. Detector and mobile video proportions remain unchanged.
 - Current immutable deployment: https://fbaceaa5.cv-basics.pages.dev/ (app commit `a2ac011`). Published with `npm run deploy`. Immutable and production HTML/CSS/JS/service-worker/offline manifest match the working tree. Live mobile check verified the updated layout, quiet playback, frosted About sheet, supplied copy, close behavior and clean console.
 - Latest checks: desktop, 390×844 and 320×568 layouts; one-column items, thumbnail overflow/selection with stationary Camera button, full About content and 16 technical-detail rows, frosted desktop modal/two-column Settings, 390 px and 320 px mobile sheets, internal scrolling, Escape/focus restoration, plain ⋮ appearance and continued playback, no normal-playback status/console errors. Local real-model fixture verified centered permission guidance, clearing on success, centered missing-camera error and retry recovery. Physical camera/touch still need event-device checks; no test suite added.
 - Local deploy command: `npm run deploy`; development command: `npm start` (localhost:8000). There is no GitHub auto-deployment workflow.
@@ -23,8 +23,8 @@ Five demos now form an automatic repeating playlist:
 
 1. Produce at Checkout — default; “Computers can see produce.”
 2. Checkout belt — “Even on the move.”; half-speed source, about 20 seconds.
-3. People in Store — “Recognize people around us.”; people detection only.
-4. Curbside — “And ways to serve better.”; cars and people, 6.83 seconds.
+3. People in Store — “Recognize service with a smile.”; people detection only.
+4. Curbside — “And learn how to improve operations.”; cars and people, 6.83 seconds.
 5. Produce at Home — “Bringing bold promises home.”; fruit-on-table scene.
 
 Expo fruit, Supermarket and Fruit display were removed from the app and offline cache at Ian's request. Their media and posters are preserved locally under ignored `reference/retired-sep27/`.
@@ -33,11 +33,17 @@ At each clip's end the video and boxes fade out over 500 ms, the next clip loads
 
 Each entry in `dist/config.js` has its own class list. Fruit demos recognize apples, bananas and oranges only; people mode recognizes people. The sidebar now shows presence rather than counts: images and labels brighten to full opacity for confirmed detections and dim to 25% otherwise, over 500 ms. Images are 72 px desktop / 80 px wide / 64 px small, and labels are 23–29 px. Numeric counts, total, row dividers and scene captions are removed to keep the summit presentation focused on recognition. Accessible item labels also indicate detected/not currently detected. Camera mode offers independent Produce / People checkboxes and changes class filters without reopening the camera. All recognition is model output, never scripted.
 
-New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v44` with 39 manifest entries, including five small scene thumbnails.
+New-track confidence thresholds remain fruit .48, people .60. Existing tracks can continue at fruit .32 / people .40; new people require two consecutive above-threshold detections. Inference uses the visible centered cover crop, at most 640 px on the longest side, a single inference at once and at most 20 updates/second. Fresh detections discard unmatched older boxes of the same class, preventing echo counts. When an entire class has no accepted detections, linger is 180 ms for fruit and 250 ms for people. Association uses unsmoothed detection boxes; visual position weight is .85 fruit / .65 people, with CSS interpolation over the selected detection interval (125 ms at the 8 FPS default). WebGL uses default small CPU helper handling. Current offline cache is `cv-demo-v45` with 39 manifest entries, including five small scene thumbnails.
 
 The page has wider side padding and a single flex gap. Ready for offline use and Credits links were removed from the UI; offline caching and the separate credits document remain. Recognition-list fruit images are locally bundled H-E-B photos; people and car images are supplied photographic cutouts.
 
-## September 27 Drive mockup and supplied About content (current)
+## September 27 desktop spacing and narrative refinement (current)
+
+People in Store now reads “Recognize service with a smile.” and Curbside reads “And learn how to improve operations.” Desktop source controls move underneath the video at full left-column width, with a 24 px gap; the video reserves 88 px for that row and gap so both fit within the existing outer padding. The right header gains 24 px top/bottom padding, and the narrative/items center together in its remaining height. Mobile layout and video proportions are unchanged, including its fixed bottom picker.
+
+Focused local checks at 1280×720 confirmed all five thumbnails fit without horizontal overflow, equal vertical space around the narrative/items, both new titles and a clean console. At 390×844 the video remains 342×256.5, the dock stays fixed at the viewport bottom, and the page has no horizontal overflow. Cache v45 updates HTML/CSS/config; no detector changes or test suite.
+
+## September 27 Drive mockup and supplied About content (previous iteration)
 
 Drive Temp `BE036398-64B8-4C88-969A-2512372E7112.jpg` provides the latest mobile reference. Ian explicitly kept items in one vertical stack even though the sketch uses columns. `About section.gdoc` supplies all About prose and the technical table. Local reference copies are ignored under `reference/sep27-mockup/`.
 
@@ -103,7 +109,7 @@ Mobile video now uses native 16:9 proportions, capped at 30svh, freeing room for
 
 The live content column now begins with “Explore Computer Vision” (H2), “A learning demo”, and a small dot with a single changing status label. A subtle divider precedes the narrative H1 and item list. The browser title is Explore Computer Vision. About explicitly describes illustrative possibilities, not an announced project or deployed service.
 
-The updated five story lines are listed in the current playlist above. “Recognize people around us.” avoids adjacent uses of “serve” and fits one line at 320 px. All story lines retain terminal periods. Camera retains “Searching for life.” The existing order, detector, media and tuning remain unchanged.
+The updated five story lines are listed in the current playlist above. “Recognize service with a smile.” avoids adjacent uses of “serve” and fits one line at 320 px. All story lines retain terminal periods. Camera retains “Searching for life.” The existing order, detector, media and tuning remain unchanged.
 
 Loading / Detecting now occupy their own 14 px status line. Permission, pause, no-filter and error messages keep their priorities and retry behavior there. Story text persists during loading/errors and fades independently when selecting a new scene; it no longer shares the status live region. Its responsive 18–28 px size and one-line minimum remain, with a 32 px gap before the item list. Intro divider has 24 px spacing on both sides.
 

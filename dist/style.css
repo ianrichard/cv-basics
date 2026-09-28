@@ -46,6 +46,14 @@ body.modal-open{overflow:hidden}
 @container(min-width:540px){.settings-content{grid-template-columns:1fr 1.35fr;column-gap:32px;row-gap:24px;align-items:start}.settings-section.tuning{grid-column:2;grid-row:1 / span 3}#detection-options{grid-column:1}}
 @media(min-width:1800px){#rows{gap:32px}.row{grid-template-columns:80px 1fr}.row img{width:80px;height:80px}}
 @media(max-width:1000px){.row{grid-template-columns:64px 1fr;gap:16px}.row img{width:64px;height:64px}}
+@media(min-width:721px){
+ .experience{grid-template-rows:92px minmax(0,1fr);row-gap:0}
+ .app-header{padding-block:24px}
+ .stage{height:calc(var(--stage-height) - var(--dock-height))}
+ .demo-dock{position:relative;inset:auto;width:100%;margin-top:24px}
+ .scene-carousel{mask-image:none}
+ .recognition{padding-bottom:0}.recognition-content{margin-block:auto;flex-shrink:0}
+}
 @media(max-width:720px){
  :root{--page-padding:24px;--layout-gap:32px;--dock-height:92px;--header-offset:88px;--mobile-video-height:min(38svh,calc((100vw - 48px) * .75))}
  .app-shell{padding:0 24px calc(var(--dock-height) + 24px + env(safe-area-inset-bottom))}
