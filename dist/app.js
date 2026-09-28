@@ -13,6 +13,16 @@ const detectionOptions=document.querySelector('#detection-options'), autoRotate=
 const story=document.querySelector('.recognition-content');
 const preferences=document.querySelector('#preferences'),preferencesBody=document.querySelector('#preferences-body'),more=document.querySelector('#more');
 const cameraButton=document.querySelector('#camera');
+const appHeader=document.querySelector('.app-header'),appName=document.querySelector('.app-name');
+const demoDock=document.querySelector('#demo-dock'),sourceButtons=document.querySelector('.camera-choice');
+const desktopLayout=matchMedia('(min-width:1101px)');
+function arrangeControls(){
+ const focused=document.activeElement;
+ if(desktopLayout.matches){demoDock.prepend(appName);sourceButtons.append(more)}
+ else{appHeader.append(appName,more)}
+ if(focused===more)more.focus({preventScroll:true});
+}
+arrangeControls();desktopLayout.addEventListener('change',arrangeControls);
 const demoFilters=new Map(DEMOS.map(d=>[d.key,[...d.items]]));
 let cameraFilters=[...GROUPS.produce.items,...GROUPS.people.items];
 let activeKeys=[...DEMOS[0].items];
@@ -38,7 +48,7 @@ for(const clip of DEMOS){
 function centerScene(){
  const selected=sceneButtons.get(selectedDemo)?.button;
  if(!selected)return;
- const left=selected.offsetLeft-clipSelector.offsetLeft-(clipSelector.clientWidth-selected.offsetWidth)/2;
+ const left=selected.offsetLeft-(clipSelector.clientWidth-selected.offsetWidth)/2;
  clipSelector.scrollTo({left:Math.max(0,left),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
 }
 function updateProgress(){
@@ -254,7 +264,7 @@ async function setPreferences(open){
  if(open){
   if(!preferences.open)preferences.showModal();
   document.body.classList.add('modal-open');
-  document.querySelector('#'+selectedTab).focus({preventScroll:true});
+  preferences.focus({preventScroll:true});
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===preferencesRevision)preferences.classList.add('is-open')}));
  }else{
   preferences.classList.remove('is-open');
