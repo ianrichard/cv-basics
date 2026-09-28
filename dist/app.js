@@ -10,13 +10,15 @@ const statusText=document.querySelector('#status-text'), dot=document.querySelec
 const rows=document.querySelector('#rows'), narrativeTitle=document.querySelector('#narrative-title');
 const flip=document.querySelector('#flip-camera'),clipSelector=document.querySelector('#demo-clips');
 const detectionOptions=document.querySelector('#detection-options'), autoRotate=document.querySelector('#auto-rotate');
+const stage=document.querySelector('.stage'),story=document.querySelector('.recognition-content'),recognition=document.querySelector('.recognition');
+const sourceTray=document.querySelector('#source-tray'),controlsToggle=document.querySelector('#controls-toggle'),videoBottom=document.querySelector('.video-bottom'),cameraButton=document.querySelector('#camera');
 const demoFilters=new Map(DEMOS.map(d=>[d.key,[...d.items]]));
 let cameraFilters=[...GROUPS.produce.items,...GROUPS.people.items];
 let activeKeys=[...DEMOS[0].items];
 const requestedSample=new URL(location.href).searchParams.get('sample');
 let selectedDemo=DEMOS.find(d=>d.key===(requestedSample==='curbside-photo'?'curbside':requestedSample))?.key||DEMOS[0].key, facing='environment', cameraDevices=[], activeDeviceId='';
-let viewRevision=0,activeView='demo',viewTransition=0,sceneTransition=false;
-const isLiveView=()=>activeView==='demo'||activeView==='camera';
+let viewRevision=0,activePanel=null,sceneTransition=false;
+const isLiveView=()=>activePanel===null;
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;
 let detectionFPS=8,lastTrackingUpdate=0;
@@ -24,7 +26,20 @@ const isImage=()=>mode==='demo'&&DEMOS.find(d=>d.key===selectedDemo).type==='ima
 const sampleKind=()=>isImage()?'image':'video';
 let modelState='downloading', sourceState='loading', sourceError='', detectionActive=false;
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{alpha:false});
-for(const clip of DEMOS){const button=document.createElement('button');button.textContent=clip.label;button.dataset.clip=clip.key;button.addEventListener('click',()=>source('demo',false,clip.key));clipSelector.append(button)}
+const sceneButtons=new Map();
+for(const clip of DEMOS){
+ const button=document.createElement('button');button.className='scene-thumb';button.dataset.clip=clip.key;button.setAttribute('aria-label',clip.label);button.title=clip.label;
+ const image=document.createElement('img');image.src=clip.thumb||clip.poster;image.alt='';image.width=192;image.height=108;
+ const track=document.createElement('span');track.className='scene-track';track.setAttribute('aria-hidden','true');
+ const progress=document.createElement('span');progress.className='scene-progress';track.append(progress);button.append(image,track);
+ button.addEventListener('click',()=>source('demo',false,clip.key));clipSelector.insertBefore(button,cameraButton);sceneButtons.set(clip.key,{button,progress});
+}
+function updateProgress(){
+ if(mode!=='demo')return;
+ const progress=sceneButtons.get(selectedDemo)?.progress;
+ if(progress)progress.style.transform=`scaleX(${Number.isFinite(video.duration)&&video.duration>0?Math.min(1,video.currentTime/video.duration):0})`;
+}
+for(const event of ['timeupdate','durationchange','ended'])video.addEventListener(event,updateProgress);
 for(const key of ENABLED){const item=ITEMS[key];const row=document.createElement('div');row.className='row empty';row.dataset.key=key;row.setAttribute('role','listitem');row.setAttribute('aria-label',`${item.label}: not currently detected`);row.innerHTML=`<img src="${item.image}" alt=""><span>${item.label}</span>`;rows.append(row)}
 for(const [key,group] of Object.entries(GROUPS)){
  const label=document.createElement('label');label.className='check-option';label.dataset.group=key;
@@ -36,13 +51,15 @@ for(const [key,group] of Object.entries(GROUPS)){
   configureScene();sceneTransition=false;viewRevision++;lastFrame=-1;detectionActive=false;imagePending=true;imageAnalyzed=false;clear();refreshStatus();
  });
 }
-function configureScene(){
- narrative(detectionTitle());
+function configureScene(immediate=false){
+ if(immediate){desiredNarrative=detectionTitle();narrativeTitle.textContent=desiredNarrative;narrativeTitle.style.opacity='1'}else narrative(detectionTitle());
  activeKeys=[...(mode==='camera'?cameraFilters:demoFilters.get(selectedDemo))];
  for(const row of rows.children)row.hidden=!activeKeys.includes(row.dataset.key);
  document.querySelector('#demo-options').hidden=mode!=='demo';document.querySelector('#auto-rotate-option').hidden=mode!=='demo'||isImage();
  video.loop=mode==='demo'&&!isImage()&&!autoRotate.checked&&!playback.seconds;
- for(const button of clipSelector.children)button.setAttribute('aria-pressed',String(button.dataset.clip===selectedDemo));
+ for(const [key,{button,progress}] of sceneButtons){const selected=mode==='demo'&&key===selectedDemo;button.setAttribute('aria-pressed',String(selected));if(!selected)progress.style.transform='scaleX(0)'}
+ cameraButton.setAttribute('aria-pressed',String(mode==='camera'));
+ updateProgress();
  for(const label of detectionOptions.querySelectorAll('label')){
   const key=label.dataset.group;label.hidden=mode==='camera'&&key==='cars';
   label.querySelector('input').checked=GROUPS[key].items.every(item=>activeKeys.includes(item));
@@ -80,8 +97,8 @@ function refreshStatus(){
  else if(failed){text='Detection stopped 😕';state='error';canRetry=true}
  else if(sourceState==='error'){text=sourceError;state='error';canRetry=true}
  else if(modelState!=='ready'){text='Loading'}
- else if(sceneTransition){text='Loading';state='loading'}
  else if(sourceState==='permission')text='Allow Camera Access';
+ else if(sceneTransition){text='Loading';state='loading'}
  else if(sourceState==='loading')text='Loading';
  else if(!activeKeys.length){text='Select items to detect';state='idle'}
  else if(isImage()&&!document.hidden){text=imageAnalyzed?'Detected':'Loading';state=imageAnalyzed?'complete':'loading'}
@@ -140,15 +157,14 @@ async function loop(now){
  finally{busy=false}
 }
 async function source(next, switching=false, clipKey=selectedDemo){
- const fade=next==='demo'&&mode==='demo'&&sourceState==='ready';
- sceneTransition=fade;
+ const hasPrevious=Boolean(video.currentSrc||stream||sampleImage.getAttribute('src'));
  clearTimeout(endedTimer);
- const token=++generation;mode=next;ready=false;sourceState='loading';sourceError='';failed=false;detectionActive=false;video.pause();
- selectedDemo=clipKey;imagePending=true;imageAnalyzed=false;configureScene();clear();refreshStatus();
-
- picture.classList.toggle('fading',next==='demo');
- if(fade&&isLiveView()&&!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,320));
+ const token=++generation;ready=false;sceneTransition=true;sourceState='loading';sourceError='';failed=false;detectionActive=false;video.pause();
+ // Freeze the outgoing scene, including its boxes and story, until fully faded out.
+ picture.classList.add('fading');story.classList.add('fading');refreshStatus();
+ if(hasPrevious)await Promise.all(picture.getAnimations().filter(animation=>animation.transitionProperty==='opacity').map(animation=>animation.finished.catch(()=>{})));
  if(token!==generation)return;
+ mode=next;selectedDemo=clipKey;imagePending=true;imageAnalyzed=false;clear();configureScene(true);
  lastFrame=-1;playback.reset();flip.hidden=next!=='camera';flip.disabled=true;
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
  video.srcObject=null;video.removeAttribute('src');if(next==='camera')video.poster='';video.load();
@@ -183,9 +199,9 @@ async function source(next, switching=false, clipKey=selectedDemo){
   if(!isLiveView())video.pause();
   if(!activeKeys.length)sceneTransition=false;
   sourceState='ready';ready=modelState==='ready';flip.disabled=cameraDevices.length<2;
-  requestAnimationFrame(()=>{if(token===generation)picture.classList.remove('fading')});refreshStatus();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===generation){picture.classList.remove('fading');story.classList.remove('fading')}}));refreshStatus();
  }catch(e){
-  if(token!==generation)return;picture.classList.remove('fading');flip.disabled=cameraDevices.length<2;sourceState='error';ready=false;
+  if(token!==generation)return;picture.classList.remove('fading');story.classList.remove('fading');sceneTransition=false;flip.disabled=cameraDevices.length<2;sourceState='error';ready=false;
   sourceError=next!=='camera'?`Sample ${sampleKind()} didn’t load 😕`:e.name==='NotAllowedError'?'Camera access declined 😕':e.name==='NotFoundError'?'No camera detected 😕':'Camera unavailable 😕';
   clear();refreshStatus();console.error(e);
  }
@@ -231,40 +247,62 @@ video.addEventListener('ended',finishPlayback);
 video.addEventListener('seeking',()=>{if(isImage())return;playback.reset();viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
 for(const event of ['pause','playing','waiting','seeked'])video.addEventListener(event,()=>{if(isImage())return;if(event==='waiting')detectionActive=false;refreshStatus()});
 video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Sample video didn’t load 😕';detectionActive=false;clear();refreshStatus()}});
-const mainView=document.querySelector('#main-view'),contentHeader=document.querySelector('.content-header');
-async function showView(next){
- const token=++viewTransition;
- if(next===activeView&&!mainView.classList.contains('view-fading'))return;
- const restoreTabFocus=contentHeader.contains(document.activeElement);
- mainView.classList.add('view-fading');mainView.inert=true;
- if(!matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,250));
- if(token!==viewTransition)return;
- const previous=activeView;activeView=next;
- const live=isLiveView();
- document.querySelector(live?'.recognition-content':'#'+next+'-view').prepend(contentHeader);
- document.querySelector('#live-view').hidden=!live;
- document.querySelector('#settings-view').hidden=next!=='settings';
- document.querySelector('#about-view').hidden=next!=='about';
- for(const key of ['demo','camera','settings','about'])document.querySelector('#'+key).setAttribute('aria-pressed',String(key===next));
- // Hidden views do no inference or delayed-frame copying. Keep the source for return.
- clearTimeout(endedTimer);playback.reset();viewRevision++;clear();lastFrame=-1;
- if(!live){video.pause()}
- else if(next!==mode||sourceState==='error'){source(next)}
- else if(previous==='settings'||previous==='about'){
-  sceneTransition=false;imagePending=true;imageAnalyzed=false;
-  if(!isImage()){
-   if(video.ended)source(next);
-   else video.play().catch(()=>source(next));
-  }
+let pointerInStage=false;
+function showControls(visible){
+ const wasVisible=sourceTray.classList.contains('visible');
+ visible=visible&&!activePanel;
+ sourceTray.classList.toggle('visible',visible);sourceTray.inert=!visible;
+ controlsToggle.setAttribute('aria-expanded',String(visible));controlsToggle.setAttribute('aria-label',visible?'Hide scene controls':'Show scene controls');
+ if(visible&&!wasVisible){
+  const selected=mode==='camera'?cameraButton:sceneButtons.get(selectedDemo)?.button;
+  if(selected){const left=selected.offsetLeft-clipSelector.offsetLeft;clipSelector.scrollTo({left:Math.max(0,left-(clipSelector.clientWidth-selected.offsetWidth)/2),behavior:'instant'})}
  }
- window.scrollTo({top:0,behavior:'instant'});
- mainView.inert=false;
- if(restoreTabFocus)document.querySelector('#'+next).focus({preventScroll:true});
- // Allow the new content to lay out at zero opacity before fading it in.
- requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===viewTransition)mainView.classList.remove('view-fading')}));
+}
+let touchControl=false;
+controlsToggle.addEventListener('pointerdown',event=>{touchControl=event.pointerType==='touch'||event.pointerType==='pen'});
+controlsToggle.addEventListener('click',event=>{const touch=event.pointerType==='touch'||event.pointerType==='pen'||(event.detail>0&&touchControl);showControls(touch?!sourceTray.classList.contains('visible'):true)});
+stage.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){pointerInStage=true;showControls(true)}});
+stage.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'){pointerInStage=false;if(!sourceTray.querySelector(':focus-visible'))showControls(false)}});
+stage.addEventListener('focusin',event=>{if(!activePanel&&(sourceTray.contains(event.target)||(event.target===controlsToggle&&controlsToggle.matches(':focus-visible'))))showControls(true)});
+stage.addEventListener('focusout',()=>requestAnimationFrame(()=>{if(!pointerInStage&&!sourceTray.contains(document.activeElement)&&document.activeElement!==controlsToggle)showControls(false)}));
+document.addEventListener('pointerdown',event=>{if(event.pointerType==='touch'&&!stage.contains(event.target))showControls(false)});
+cameraButton.addEventListener('click',()=>source('camera'));
+function openPanel(name){
+ if(activePanel===name)return;
+ if(activePanel)document.querySelector('#'+activePanel+'-view').hidden=true;
+ activePanel=name;clearTimeout(endedTimer);viewRevision++;video.pause();
+ showControls(false);controlsToggle.inert=true;videoBottom.inert=true;recognition.inert=true;
+ const panel=document.querySelector('#'+name+'-view');panel.hidden=false;
+ for(const key of ['settings','about'])document.querySelector('#'+key).setAttribute('aria-expanded',String(key===name));
+ panel.querySelector('.close-panel').focus({preventScroll:true});
+}
+function closePanel(){
+ if(!activePanel)return;
+ const previous=activePanel;document.querySelector('#'+previous+'-view').hidden=true;activePanel=null;
+ controlsToggle.inert=false;videoBottom.inert=false;recognition.inert=false;
+ document.querySelector('#'+previous).setAttribute('aria-expanded','false');document.querySelector('#'+previous).focus({preventScroll:true});
+ // Resume the same source without reopening the camera or restarting the scene.
+ lastTrackingUpdate=0;lastFrame=-1;imagePending=true;imageAnalyzed=false;
+ if(sourceState==='ready'&&!isImage()){
+  if(video.ended)finishPlayback();else video.play().catch(()=>source(mode));
+ }
  refreshStatus();
 }
-for(const key of ['demo','camera','settings','about'])document.querySelector('#'+key).addEventListener('click',()=>showView(key));
+for(const key of ['settings','about'])document.querySelector('#'+key).addEventListener('click',()=>openPanel(key));
+for(const button of document.querySelectorAll('.close-panel'))button.addEventListener('click',closePanel);
+stage.addEventListener('keydown',event=>{
+ if(event.key==='Escape'){
+  if(activePanel){event.preventDefault();closePanel()}
+  else if(sourceTray.classList.contains('visible')){event.preventDefault();controlsToggle.focus({preventScroll:true});showControls(false)}
+ }
+ if(event.key==='Tab'&&activePanel){
+  const panel=document.querySelector('#'+activePanel+'-view');
+  const focusable=[...panel.querySelectorAll('button,input,a[href],[tabindex="0"]')].filter(el=>!el.disabled&&el.getClientRects().length);
+  const first=focusable[0],last=focusable.at(-1);
+  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+ }
+});
 retry.addEventListener('click',()=>modelState==='error'?location.reload():source(mode));
 document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear();detectionActive=false}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
 window.addEventListener('pagehide',()=>{clearTimeout(endedTimer);playback.reset();generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});

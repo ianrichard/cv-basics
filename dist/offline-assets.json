@@ -1,12 +1,12 @@
 [
   "./",
-  "index.html?v=34",
-  "config.js?v=28",
-  "app.js?v=34",
+  "index.html?v=37",
+  "config.js?v=37",
+  "app.js?v=37",
   "manifest.webmanifest?v=25",
   "credits.html?v=23",
   "geometry.js",
-  "style.css?v=34",
+  "style.css?v=37",
   "model/model.json",
   "model/group1-shard1of5",
   "model/group1-shard2of5",
@@ -32,5 +32,10 @@
   "icon-32.png",
   "icon-180.png",
   "icon-192.png",
-  "icon-512.png"
+  "icon-512.png",
+  "media/add-banana-thumb.jpg",
+  "media/checkout-belt-thumb.jpg",
+  "media/heb-people-thumb.jpg",
+  "media/curbside-thumb.jpg",
+  "media/heb-produce-thumb.jpg"
 ]
