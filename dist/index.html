@@ -6,21 +6,18 @@
 </head>
 <body>
 <div class="app-shell">
-    <header class="app-header">
-     <div class="app-name">Explore <span>Computer Vision</span></div>
-     <div class="source-switch" role="group" aria-label="Video source">
-      <button id="demo" class="icon-button" aria-label="Demos" title="Demos" aria-pressed="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4v16a1 1 0 0 0 1.524 .852l13 -8a1 1 0 0 0 0 -1.704l-13 -8a1 1 0 0 0 -1.524 .852z"/></svg></button>
-      <button id="camera" class="icon-button" aria-label="Camera" title="Camera" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M15 3a2 2 0 0 1 1.995 1.85l.005 .15a1 1 0 0 0 .883 .993l.117 .007h1a3 3 0 0 1 2.995 2.824l.005 .176v9a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-9a3 3 0 0 1 2.824 -2.995l.176 -.005h1a1 1 0 0 0 1 -1a2 2 0 0 1 1.85 -1.995l.15 -.005h6zm-3 7a3 3 0 0 0 -2.985 2.698l-.011 .152l-.004 .15l.004 .15a3 3 0 1 0 2.996 -3.15z"/></svg></button>
-     </div>
-     <button id="more" class="icon-button" aria-label="Settings and about" title="Settings and about" aria-expanded="false" aria-controls="preferences"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
-    </header>
  <main id="main-view">
   <section id="live-view" class="experience" aria-label="Live recognition">
+    <header class="app-header">
+     <div class="app-name">Explore <span>Computer Vision</span></div>
+     <button id="more" class="icon-button" aria-label="Settings and about" title="Settings and about" aria-expanded="false" aria-controls="preferences"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
+    </header>
+
    <div class="stage-shell">
     <section class="stage" aria-label="Video and object detections">
      <div id="picture"><video id="video" autoplay muted playsinline preload="auto"></video><canvas id="delayed-video" aria-hidden="true" hidden></canvas><img id="sample-image" alt="" hidden><div id="overlays" aria-hidden="true"></div></div>
+     <div class="playback-message"><div class="status"><span id="status-text" role="status" aria-live="polite">Loading computer vision to your device</span><button id="retry" hidden>Try again</button></div></div>
      <div class="video-bottom">
-      <div class="video-status"><div class="status"><span id="status-dot" class="loading" aria-hidden="true"></span><span id="status-text" role="status" aria-live="polite">Loading</span></div><button id="retry" hidden>Try again</button></div>
       <button id="flip-camera" class="icon-button" aria-label="Flip camera" title="Flip camera" hidden><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h1a2 2 0 0 0 2 -2a1 1 0 0 1 1 -1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-9a2 2 0 0 1 2 -2"/><path d="M11.245 15.904a3 3 0 0 0 3.755 -2.904m-2.25 -2.905a3 3 0 0 0 -3.75 2.905"/><path d="M14 13h2v2"/><path d="M10 13h-2v-2"/></svg></button>
      </div>
     </section>
@@ -31,10 +28,20 @@
       <h1 id="narrative-title">Computers can see produce.</h1>
       <div id="rows" role="list" aria-label="Object recognition"></div>
      </div>
-     <section id="preferences" hidden aria-label="Settings and about">
+
+    </div>
+   </aside>
+  </section>
+ </main>
+ <nav id="demo-dock" class="demo-dock" aria-label="Video source"><div id="demo-clips" class="scene-carousel" role="group" aria-label="Demo scenes"></div><div class="camera-choice"><button id="camera" class="icon-button" aria-label="Camera" title="Camera" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M15 3a2 2 0 0 1 1.995 1.85l.005 .15a1 1 0 0 0 .883 .993l.117 .007h1a3 3 0 0 1 2.995 2.824l.005 .176v9a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-9a3 3 0 0 1 2.824 -2.995l.176 -.005h1a1 1 0 0 0 1 -1a2 2 0 0 1 1.85 -1.995l.15 -.005h6zm-3 7a3 3 0 0 0 -2.985 2.698l-.011 .152l-.004 .15l.004 .15a3 3 0 1 0 2.996 -3.15z"/></svg></button></div></nav>
+</div>
+     <dialog id="preferences" aria-label="Settings and about">
+      <div class="preferences-header">
       <div class="preferences-tabs" role="tablist" aria-label="Preferences">
        <button id="settings" role="tab" aria-selected="true" aria-controls="settings-view">Settings</button>
        <button id="about" role="tab" aria-selected="false" aria-controls="about-view" tabindex="-1">About</button>
+      </div>
+      <button id="close-preferences" class="icon-button" aria-label="Close settings and about"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6l-12 12M6 6l12 12"/></svg></button>
       </div>
       <div id="preferences-body" class="preferences-body">
        <section id="settings-view" role="tabpanel" aria-labelledby="settings" tabindex="0">
@@ -55,24 +62,40 @@
        </section>
        <section id="about-view" role="tabpanel" aria-labelledby="about" tabindex="0" hidden>
    <div class="about-copy">
-    <p>A learning demo exploring what computer vision can recognize. The sample scenes illustrate possibilities, not an announced project or deployed service.</p>
-    <h2>Sample footage. Live detection.</h2>
-    <p>The demo videos are recordings. The boxes and recognized items are created live as this device watches each frame.</p>
-    <h2>It happens right here.</h2>
-    <p>Once the vision model has downloaded, recognition runs in your browser on this device. Video frames aren’t sent to a server for analysis.</p>
-    <h2>Give it something to find.</h2>
-    <p>Switch to Camera and try apples, bananas, oranges or people. Keep them clearly visible and watch the recognized items light up.</p>
-    <p class="about-note">This is object recognition, not identification. It can miss things or get them wrong—especially when objects are small, moving or partly hidden.</p>
+    <h2>A demo of what’s possible.</h2>
+    <p>Computer vision helps computers extract useful information from images and video.</p>
+    <p>This isn’t a production solution to one specific problem. It’s a playground for seeing what computers can recognize, learning a few core ideas, and asking a more useful question:</p>
+    <p><strong>What would be valuable for a computer to notice?</strong></p>
+    <h2>The footage is recorded. The detections are live.</h2>
+    <p>Nothing is scripted to match the demo videos. Object detection is happening as they play.</p>
+    <p>Switch to <strong>Camera</strong> and point it at the world around you. The same system will analyze the live camera feed and recognize supported objects in real time.</p>
+    <p>Once everything is loaded, that work happens directly on your device and can continue offline.</p>
+    <h2>Not everything needs a giant server.</h2>
+    <p>Modern devices contain hardware built to perform huge amounts of math in parallel.</p>
+    <p>Graphics processors, or <strong>GPUs</strong>, became powerful because graphics and games require many calculations to happen at the same time. That same capability happens to be extremely useful for machine learning, including computer vision and generative AI. Many newer devices also include specialized chips designed specifically for this kind of work.</p>
+    <p>That creates an important option: sometimes the device connected to the camera can do the work itself.</p>
+    <p>Local processing can mean faster responses, less network traffic, better privacy, offline operation and less dependence on centralized computing.</p>
+    <p>Cloud computing is still the right answer for plenty of problems. But <strong>“Can this happen where the data is created?” should be a serious design question.</strong></p>
+    <h2>Good design can require less compute.</h2>
+    <p>A useful experiment in this demo is hiding in the moving boxes.</p>
+    <p>Many screens refresh around <strong>60 times per second</strong>, but this demo performs object detection only <strong>8 times per second</strong> by default. The interface smoothly transitions the boxes between those observations instead of running another expensive detection pass for every displayed frame.</p>
+    <p>That cuts the number of detection passes by more than <strong>85%</strong> compared with analyzing every displayed frame, while the experience still feels fluid.</p>
+    <p>The larger lesson is simple: the model is only one part of the system.</p>
+    <p>Choices about hardware, software, timing and presentation can sometimes make the difference between needing constant cloud connectivity and making a small, self-contained, offline-capable setup practical.</p>
+    <h2>What it recognizes is only the starting point.</h2>
+    <p>This demo uses a general-purpose model that already recognizes common objects, so we cherry-picked a few that demonstrate well: produce, people and cars.</p>
+    <p>Other computer vision systems can be specialized around a particular need—a product, defect, gesture, shelf condition, piece of equipment or countless other visual signals.</p>
+    <p>Recognition can then become one input among many: tracking, business rules, sensors, other data or generative AI.</p>
+    <p><strong>What is here?<br>What changed?<br>Does it matter?<br>What should happen next?</strong></p>
+    <p>Seeing is only the beginning.</p>
+    <hr>
+    <h2>Technical details</h2>
+    <dl class="technical-details"><div><dt><strong>Task</strong></dt><dd>Real-time object detection</dd></div><div><dt><strong>Model</strong></dt><dd>SSDLite MobileNet V2</dd></div><div><dt><strong>Training dataset</strong></dt><dd>COCO</dd></div><div><dt><strong>Model size</strong></dt><dd>~18.6 MB</dd></div><div><dt><strong>Runtime</strong></dt><dd>TensorFlow.js 4.22</dd></div><div><dt><strong>Execution</strong></dt><dd>Browser-local</dd></div><div><dt><strong>Acceleration</strong></dt><dd>WebGL / GPU</dd></div><div><dt><strong>Internal model input</strong></dt><dd>300 × 300 px</dd></div><div><dt><strong>Default inference rate</strong></dt><dd>8/sec</dd></div><div><dt><strong>Adjustable inference rate</strong></dt><dd>2–20/sec</dd></div><div><dt><strong>Presentation</strong></dt><dd>DOM overlays rendered independently from inference</dd></div><div><dt><strong>Motion</strong></dt><dd>Box position and size interpolated between detections</dd></div><div><dt><strong>Alignment</strong></dt><dd>Adjustable playback delay for visual synchronization</dd></div><div><dt><strong>Demo classes</strong></dt><dd>Apples, bananas, oranges, people and cars</dd></div><div><dt><strong>Connectivity</strong></dt><dd>No server inference; offline-capable after assets are cached</dd></div><div><dt><strong>Camera</strong></dt><dd>Live front/rear camera support where available</dd></div></dl>
+    <p>This is a learning demo, not a production vision system. General-purpose models can miss objects, confuse them or struggle when things are small, moving, obscured or outside what they were trained to recognize.</p>
     <a href="credits.html">Media and software credits</a>
    </div>
 
        </section>
       </div>
-     </section>
-    </div>
-   </aside>
-  </section>
- </main>
- <nav id="demo-dock" class="demo-dock" aria-label="Demo scenes"><div id="demo-clips" class="scene-carousel"></div></nav>
-</div>
+     </dialog>
 </body></html>
