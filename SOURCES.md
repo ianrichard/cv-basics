@@ -1,42 +1,39 @@
-# Bundled assets and upstream sources
+# Asset sources and processing
 
-Everything needed at runtime is in `dist/`; the app makes no runtime CDN requests.
+Where each shipped file in `dist/` came from and how it was prepared. The public attribution page is [dist/credits.html](dist/credits.html); keep the two consistent when assets change.
 
-| Asset | Source / notes |
+## Runtime and model
+
+| Asset | Source |
 |---|---|
-| `dist/model/` | [TensorFlow SSD Lite MobileNet V2](https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/model.json), graph and five shards, 17.7 MB. |
 | `dist/vendor/tf.min.js` | [TensorFlow.js 4.22.0](https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js), Apache 2.0. |
-| `dist/media/*-poster.jpg` | Still frames from the corresponding bundled footage. |
-| `dist/media/heb-apple.jpg` | [H-E-B product image](https://images.heb.com/is/image/HEBGrocery/000466634-1?hei=360&wid=360), URL supplied by Ian. |
-| `dist/media/heb-banana.jpg` | [H-E-B product image](https://images.heb.com/is/image/HEBGrocery/000377497-1?hei=360&wid=360), URL supplied by Ian. |
-| `dist/media/heb-orange.jpg` | [H-E-B product image](https://images.heb.com/is/image/HEBGrocery/000375168-1?hei=360&wid=360), URL supplied by Ian. |
-| `dist/media/people.svg` | Original two-person silhouette drawn for this app. |
+| `dist/model/` | [TensorFlow SSDLite MobileNet V2](https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/model.json) (COCO), graph plus five weight shards, 18.6 MB. Internally resizes input to 300×300. |
+| `dist/vendor/montserrat-latin-wght-normal.woff2` | Montserrat Latin variable font from [Fontsource](https://fontsource.org/fonts/montserrat) 5.3.0, SIL OFL 1.1 (`dist/vendor/montserrat-OFL.txt`). Used for titles. |
+| Inline SVG icons in `dist/index.html` | [Tabler Icons](https://tabler.io/icons), MIT (`dist/vendor/tabler-LICENSE.txt`). |
 
-The original MOV, downloaded footage candidates and retired demo media remain in the ignored `reference/` directory. Six Gemini clips ship and cache offline: H-E-B people, H-E-B produce, Add banana, Remove orange, Checkout belt and Curbside. Expo fruit, Supermarket and Fruit display were removed from the app on September 27 and retained locally in `reference/retired-sep27/`. The historical research page in `docs/retail-video-options.html` is reference material, not the current demo lineup.
+## Images
 
-`dist/app.js`, `dist/config.js`, `dist/geometry.js`, `dist/style.css`, `dist/index.html` and the service worker are editable source. No API key or backend is needed. `npm start` serves the app locally; `npm run deploy` publishes `dist/` to Cloudflare Pages. Bump the cache version in `dist/sw.js` when changing bundled assets and keep `offline-assets.json` in sync.
+| Asset | Source |
+|---|---|
+| `dist/media/heb-apple.jpg`, `heb-banana.jpg`, `heb-orange.jpg` | H-E-B product images, URLs supplied by Ian: [apple](https://images.heb.com/is/image/HEBGrocery/000466634-1?hei=360&wid=360), [banana](https://images.heb.com/is/image/HEBGrocery/000377497-1?hei=360&wid=360), [orange](https://images.heb.com/is/image/HEBGrocery/000375168-1?hei=360&wid=360). |
+| `dist/media/person.png`, `car.png` | Photographic cutouts supplied by Ian (Drive Temp), resized to at most 256 px, metadata stripped. |
+| `dist/icon-32.png`, `icon-180.png`, `icon-192.png`, `icon-512.png` | App icon artwork supplied by Ian, metadata stripped. |
+| `dist/media/*-poster.jpg`, `*-thumb.jpg` | Frames extracted from the matching bundled clip. |
 
-## Restored Gemini footage
+## Video
 
-These 1280×720 clips were supplied by Ian and generated with Gemini. Add banana and Remove orange retain their original 10-second timing. Checkout belt is now roughly 20 seconds at half speed: FFmpeg motion-compensated interpolation to 30 fps, H.264/yuv420p CRF 22, silent, fast start, source metadata stripped. The slow file is 2,001,893 bytes; its original is retained in `reference/slow-checkout/original.mp4`.
+All clips are Gemini-generated, fictional scenes supplied by Ian. Each is silent 1280×720 H.264/yuv420p MP4 with fast start and source metadata removed. Originals are kept locally in the ignored `reference/` folder.
 
-- `media/add-banana.mp4` — `gemini_generated_video_6F23B4FE.MP4`
-- `media/remove-orange.mp4` — `gemini_generated_video_D06CC2AD.MP4`
-- `media/checkout-belt.mp4` — `gemini_generated_video_128CF9EF.mp4`
-- Retired Fruit display — `gemini_generated_video_76AE4569.mp4`, now local-only.
+| Clip | Source file | Processing |
+|---|---|---|
+| `add-banana.mp4` (Produce at Checkout) | `gemini_generated_video_6F23B4FE.MP4` | Original 10-second timing. |
+| `checkout-belt.mp4` (Checkout belt) | `gemini_generated_video_128CF9EF.mp4` | Slowed to half speed (about 20 s) with FFmpeg `setpts=2*(PTS-STARTPTS)` and motion-compensated `minterpolate` to 30 fps, CRF 22; 2,001,893 bytes. Original in `reference/slow-checkout/`. |
+| `heb-people.mp4` (People in Store) | `gemini_generated_video_6989CEE7.mov` | 8.5 s, 24 fps, CRF 23; 2,694,637 bytes. Original in `reference/new-demos/`. |
+| `curbside.mp4` (Curbside) | `gemini_generated_video_B7C6C377.mov` | 6.83 s, CRF 23; 685,538 bytes. Original in `reference/curbside/`. |
+| `heb-produce.mp4` (Produce at Home) | `gemini_generated_video_7A4F5B78.mov` | 4.2 s, 24 fps, CRF 23; 828,721 bytes. Original in `reference/new-demos/`. |
 
-## New H-E-B Gemini footage
+To process new footage, an FFmpeg binary is available without installing anything via `uv run --with imageio-ffmpeg python` and `imageio_ffmpeg.get_ffmpeg_exe()`. Keep the same output format, and keep every deployed file under Cloudflare Pages' 25 MiB limit.
 
-Supplied by Ian in Google Drive Temp. Fictional AI-generated scenes, compressed to silent 1280×720 H.264/yuv420p at 24 fps, CRF 23, fast start, with source metadata removed. Original files remain in ignored `reference/new-demos/`.
+## Retired
 
-- `media/heb-people.mp4` — `gemini_generated_video_6989CEE7.mov`, 8.5 seconds, 2,694,637 bytes (59.5% smaller).
-- `media/heb-produce.mp4` — `gemini_generated_video_7A4F5B78.mov`, 4.2 seconds, 828,721 bytes (76.7% smaller).
-- Matching `*-poster.jpg` files are still frames from these clips.
-
-## Retired curbside image evaluation
-
-The former `media/curbside.jpg` came from Ian's supplied Drive Temp `IMG_2986.JPG`. The original stays in ignored `reference/curbside/`. The shipped 1920×1280 JPEG is 187,474 bytes, re-encoded without source metadata. It was a manual Cars + People detection sample and is now retired to ignored `reference/curbside/curbside-evaluation.jpg`, outside deployment. No claim is made about the photo being AI-generated.
-
-## Curbside video
-
-`media/curbside.mp4` replaces the photo, from Ian’s Drive Temp `gemini_generated_video_B7C6C377.mov` (Gemini-generated). Silent 1280×720 H.264/yuv420p, 6.83 seconds, CRF 23, fast start, source metadata removed. Compressed from 2,004,601 to 685,538 bytes (65.8% smaller). `media/curbside-poster.jpg` is an extracted frame. Original media remains in ignored `reference/curbside/`.
+Retired media is kept locally, outside Git and deployment: Expo fruit (from phone footage `IMG_2974.MOV`, which contains source metadata and must not be published as-is), Supermarket, Fruit display and Remove orange in `reference/retired-sep27/`, and the earlier curbside photo (`IMG_2986.JPG`, user-supplied, not AI-generated) in `reference/curbside/`. [docs/retail-video-options.html](docs/retail-video-options.html) is an old footage survey, not the current lineup.
