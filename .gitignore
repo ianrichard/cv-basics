@@ -2,9 +2,7 @@
 *.log
 node_modules/
 .wrangler/
-
-# Local exploration and source archives
-/reference/
+.claude/
 
 # Local environment configuration
 .env
