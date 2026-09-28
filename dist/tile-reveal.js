@@ -1,7 +1,7 @@
 // Staggered tile reveal for a detection box element. A temporary canvas inside the box
 // draws the tiles and border trace, then crossfades to the box's normal CSS appearance.
 // One shared animation frame loop runs only while reveals are active.
-const DEFAULTS = { tileSize: 8, tileGap: 1, stagger: 700, tileFade: 220, jitter: .25, flash: .6, fillOpacity: .12, borderOpacity: .9, border: 3, radius: 17, settle: 250 };
+const DEFAULTS = { tileSize: 8, tileGap: 1, stagger: 700, tileFade: 220, jitter: .25, flash: .6, fillOpacity: .18, borderOpacity: .9, border: 3, radius: 17, settle: 250 };
 const active = new Set();
 let raf = 0;
 const ease = t => 1 - (1 - t) ** 3;
