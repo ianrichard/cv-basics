@@ -10,15 +10,16 @@ const statusText=document.querySelector('#status-text'), dot=document.querySelec
 const rows=document.querySelector('#rows'), narrativeTitle=document.querySelector('#narrative-title');
 const flip=document.querySelector('#flip-camera'),clipSelector=document.querySelector('#demo-clips');
 const detectionOptions=document.querySelector('#detection-options'), autoRotate=document.querySelector('#auto-rotate');
-const stage=document.querySelector('.stage'),story=document.querySelector('.recognition-content'),recognition=document.querySelector('.recognition');
-const sourceTray=document.querySelector('#source-tray'),controlsToggle=document.querySelector('#controls-toggle'),videoBottom=document.querySelector('.video-bottom'),cameraButton=document.querySelector('#camera');
+const stage=document.querySelector('.stage'),story=document.querySelector('.recognition-content');
+const contentBody=document.querySelector('#content-body'),preferences=document.querySelector('#preferences'),preferencesBody=document.querySelector('#preferences-body'),more=document.querySelector('#more'),demoButton=document.querySelector('#demo');
+const sourceTray=document.querySelector('#source-tray'),controlsToggle=document.querySelector('#controls-toggle'),cameraButton=document.querySelector('#camera');
 const demoFilters=new Map(DEMOS.map(d=>[d.key,[...d.items]]));
 let cameraFilters=[...GROUPS.produce.items,...GROUPS.people.items];
 let activeKeys=[...DEMOS[0].items];
 const requestedSample=new URL(location.href).searchParams.get('sample');
 let selectedDemo=DEMOS.find(d=>d.key===(requestedSample==='curbside-photo'?'curbside':requestedSample))?.key||DEMOS[0].key, facing='environment', cameraDevices=[], activeDeviceId='';
-let viewRevision=0,activePanel=null,sceneTransition=false;
-const isLiveView=()=>activePanel===null;
+let viewRevision=0,sceneTransition=false,hasDetected=false;
+let desiredPreferences=false,preferencesRevision=0,selectedTab='settings',tabRevision=0;
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;
 let detectionFPS=8,lastTrackingUpdate=0;
@@ -32,7 +33,7 @@ for(const clip of DEMOS){
  const image=document.createElement('img');image.src=clip.thumb||clip.poster;image.alt='';image.width=192;image.height=108;
  const track=document.createElement('span');track.className='scene-track';track.setAttribute('aria-hidden','true');
  const progress=document.createElement('span');progress.className='scene-progress';track.append(progress);button.append(image,track);
- button.addEventListener('click',()=>source('demo',false,clip.key));clipSelector.insertBefore(button,cameraButton);sceneButtons.set(clip.key,{button,progress});
+ button.addEventListener('click',()=>source('demo',false,clip.key));clipSelector.append(button);sceneButtons.set(clip.key,{button,progress});
 }
 function updateProgress(){
  if(mode!=='demo')return;
@@ -56,9 +57,9 @@ function configureScene(immediate=false){
  activeKeys=[...(mode==='camera'?cameraFilters:demoFilters.get(selectedDemo))];
  for(const row of rows.children)row.hidden=!activeKeys.includes(row.dataset.key);
  document.querySelector('#demo-options').hidden=mode!=='demo';document.querySelector('#auto-rotate-option').hidden=mode!=='demo'||isImage();
- video.loop=mode==='demo'&&!isImage()&&!autoRotate.checked&&!playback.seconds;
+ video.loop=mode==='demo'&&!isImage()&&(!autoRotate.checked||desiredPreferences)&&!playback.seconds;
  for(const [key,{button,progress}] of sceneButtons){const selected=mode==='demo'&&key===selectedDemo;button.setAttribute('aria-pressed',String(selected));if(!selected)progress.style.transform='scaleX(0)'}
- cameraButton.setAttribute('aria-pressed',String(mode==='camera'));
+ cameraButton.setAttribute('aria-pressed',String(mode==='camera'));demoButton.setAttribute('aria-pressed',String(mode==='demo'));
  updateProgress();
  for(const label of detectionOptions.querySelectorAll('label')){
   const key=label.dataset.group;label.hidden=mode==='camera'&&key==='cars';
@@ -80,31 +81,28 @@ function narrative(text){
 function status(text,state='loading'){
  desiredStatus={text,state};
  if(statusFading)return;
- if(statusText.textContent===text){dot.className=state;statusIndicator.style.opacity='1';return}
+ if(statusText.textContent===text){dot.className=state;statusIndicator.style.opacity=text?'1':'0';return}
  statusFading=true;statusIndicator.style.opacity='0';
  setTimeout(()=>{
-  statusText.textContent=desiredStatus.text;dot.className=desiredStatus.state;statusIndicator.style.opacity='1';
+  statusText.textContent=desiredStatus.text;dot.className=desiredStatus.state;statusIndicator.style.opacity=desiredStatus.text?'1':'0';
   setTimeout(()=>{statusFading=false;status(desiredStatus.text,desiredStatus.state)},statusDuration());
  },statusDuration());
 }
 function statusDuration(){return matchMedia('(prefers-reduced-motion: reduce)').matches?0:250}
 let lastPresentation='';
 function refreshStatus(){
- if(!isLiveView())return;
  let text,state='loading',canRetry=false;
  // Model failure > detection failure > source failure > loading > active processing.
  if(modelState==='error'){text='Model didn’t load 😕';state='error';canRetry=true}
  else if(failed){text='Detection stopped 😕';state='error';canRetry=true}
  else if(sourceState==='error'){text=sourceError;state='error';canRetry=true}
  else if(modelState!=='ready'){text='Loading'}
- else if(sourceState==='permission')text='Allow Camera Access';
- else if(sceneTransition){text='Loading';state='loading'}
- else if(sourceState==='loading')text='Loading';
+ else if(sourceState==='permission'){text='Allow Camera Access';state='idle'}
  else if(!activeKeys.length){text='Select items to detect';state='idle'}
- else if(isImage()&&!document.hidden){text=imageAnalyzed?'Detected':'Loading';state=imageAnalyzed?'complete':'loading'}
- else if(document.hidden||(video.paused&&!(video.ended&&playback.seconds))){text='Detection paused';state='idle'}
- else if(video.readyState<2||video.seeking||!detectionActive)text='Loading';
- else{text='Detecting';state='live'}
+ else if(isImage()&&imageAnalyzed){text='Detected';state='complete'}
+ else if(document.hidden){text='';state='idle'}
+ else if(hasDetected){text='Detecting';state='live'}
+ else{text='';state='idle'}
  const presentation=JSON.stringify([text,state,canRetry]);
  if(presentation===lastPresentation)return;lastPresentation=presentation;
  status(text,state);
@@ -146,13 +144,12 @@ function update(detections,still=false){
 async function detect(){if(tf.getBackend()!=='webgl')throw new Error('GPU acceleration is unavailable.');const media=isImage()?sampleImage:video;const crop=isImage()?{x:0,y:0,width:sampleImage.naturalWidth,height:sampleImage.naturalHeight}:coverCrop(video.videoWidth,video.videoHeight,picture.clientWidth,picture.clientHeight);const scale=Math.min(1,640/Math.max(crop.width,crop.height));canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));ctx.drawImage(media,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);let input,result;try{input=tf.tidy(()=>tf.browser.fromPixels(canvas).expandDims(0));result=await model.executeAsync(input);const [scores,boxes]=await Promise.all([result[0].data(),result[1].data()]);const n=result[0].shape[1],classes=result[0].shape[2],candidates=[];for(let i=0;i<n;i++){let max=0,category=-1;for(let c=0;c<classes;c++){const s=scores[i*classes+c];if(s>max){max=s;category=c+1}}const key=activeKeys.find(k=>ITEMS[k].id===category);if(!key||max<ITEMS[key].trackingThreshold)continue;const b=i*4,y=Math.max(0,boxes[b]),x=Math.max(0,boxes[b+1]),y2=Math.min(1,boxes[b+2]),x2=Math.min(1,boxes[b+3]);if(x2>x&&y2>y)candidates.push({key,score:max,box:[x,y,x2-x,y2-y]})}candidates.sort((a,b)=>b.score-a.score);const selected=[];for(const c of candidates){if(!selected.some(s=>s.key===c.key&&iou(s.box,c.box)>.45))selected.push(c);if(selected.length>=40)break}return selected}finally{input?.dispose();if(result)tf.dispose(result)}}
 async function loop(now){
  requestAnimationFrame(loop);
- if(!isLiveView())return;
  if(!isImage()&&sourceState==='ready'&&!document.hidden)playback.tick(now);
  if(!ready||busy||failed||!activeKeys.length||document.hidden)return;
  if(isImage()){if(!imagePending)return;imagePending=false}
  else if(video.paused||video.seeking||video.readyState<2||now-lastInference<1000/detectionFPS||lastFrame===video.currentTime)return;
  busy=true;const token=generation,revision=viewRevision;lastInference=now;lastFrame=video.currentTime;
- try{const found=await detect();if(token===generation&&revision===viewRevision){update(found,isImage());detectionActive=true;sceneTransition=false;if(isImage())imageAnalyzed=true;refreshStatus()}}
+ try{const found=await detect();if(token===generation&&revision===viewRevision){update(found,isImage());detectionActive=true;hasDetected=true;sceneTransition=false;if(isImage())imageAnalyzed=true;refreshStatus()}}
  catch(e){if(token!==generation||revision!==viewRevision)return;console.error(e);failed=true;detectionActive=false;clear();refreshStatus()}
  finally{busy=false}
 }
@@ -196,7 +193,6 @@ async function source(next, switching=false, clipKey=selectedDemo){
    const clip=DEMOS.find(d=>d.key===selectedDemo);video.poster=clip.poster;video.src=clip.src;
   }
   if(!isImage())await video.play();if(token!==generation)return;
-  if(!isLiveView())video.pause();
   if(!activeKeys.length)sceneTransition=false;
   sourceState='ready';ready=modelState==='ready';flip.disabled=cameraDevices.length<2;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===generation){picture.classList.remove('fading');story.classList.remove('fading')}}));refreshStatus();
@@ -233,12 +229,12 @@ for(const control of [fpsControl,glowControl,fillControl,fillOpacity,delayContro
 applyTuning();
 function finishPlayback(){
  clearTimeout(endedTimer);
- if(!isLiveView()||mode!=='demo'||isImage()||failed||sourceState==='error')return;
+ if(mode!=='demo'||isImage()||failed||sourceState==='error')return;
  const token=generation;
  endedTimer=setTimeout(()=>{
-  if(token!==generation||!isLiveView()||failed||sourceState==='error')return;
+  if(token!==generation||failed||sourceState==='error')return;
   const clips=DEMOS.filter(d=>d.type!=='image');
-  const next=autoRotate.checked?clips[(clips.findIndex(d=>d.key===selectedDemo)+1)%clips.length].key:selectedDemo;
+  const next=autoRotate.checked&&!desiredPreferences?clips[(clips.findIndex(d=>d.key===selectedDemo)+1)%clips.length].key:selectedDemo;
   source('demo',false,next);
  },playback.seconds*1000);
 }
@@ -250,11 +246,10 @@ video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&vi
 let pointerInStage=false;
 function showControls(visible){
  const wasVisible=sourceTray.classList.contains('visible');
- visible=visible&&!activePanel;
  sourceTray.classList.toggle('visible',visible);sourceTray.inert=!visible;
  controlsToggle.setAttribute('aria-expanded',String(visible));controlsToggle.setAttribute('aria-label',visible?'Hide scene controls':'Show scene controls');
  if(visible&&!wasVisible){
-  const selected=mode==='camera'?cameraButton:sceneButtons.get(selectedDemo)?.button;
+  const selected=sceneButtons.get(selectedDemo)?.button;
   if(selected){const left=selected.offsetLeft-clipSelector.offsetLeft;clipSelector.scrollTo({left:Math.max(0,left-(clipSelector.clientWidth-selected.offsetWidth)/2),behavior:'instant'})}
  }
 }
@@ -263,45 +258,46 @@ controlsToggle.addEventListener('pointerdown',event=>{touchControl=event.pointer
 controlsToggle.addEventListener('click',event=>{const touch=event.pointerType==='touch'||event.pointerType==='pen'||(event.detail>0&&touchControl);showControls(touch?!sourceTray.classList.contains('visible'):true)});
 stage.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){pointerInStage=true;showControls(true)}});
 stage.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'){pointerInStage=false;if(!sourceTray.querySelector(':focus-visible'))showControls(false)}});
-stage.addEventListener('focusin',event=>{if(!activePanel&&(sourceTray.contains(event.target)||(event.target===controlsToggle&&controlsToggle.matches(':focus-visible'))))showControls(true)});
+stage.addEventListener('focusin',event=>{if(sourceTray.contains(event.target)||(event.target===controlsToggle&&controlsToggle.matches(':focus-visible')))showControls(true)});
 stage.addEventListener('focusout',()=>requestAnimationFrame(()=>{if(!pointerInStage&&!sourceTray.contains(document.activeElement)&&document.activeElement!==controlsToggle)showControls(false)}));
 document.addEventListener('pointerdown',event=>{if(event.pointerType==='touch'&&!stage.contains(event.target))showControls(false)});
-cameraButton.addEventListener('click',()=>source('camera'));
-function openPanel(name){
- if(activePanel===name)return;
- if(activePanel)document.querySelector('#'+activePanel+'-view').hidden=true;
- activePanel=name;clearTimeout(endedTimer);viewRevision++;video.pause();
- showControls(false);controlsToggle.inert=true;videoBottom.inert=true;recognition.inert=true;
- const panel=document.querySelector('#'+name+'-view');panel.hidden=false;
- for(const key of ['settings','about'])document.querySelector('#'+key).setAttribute('aria-expanded',String(key===name));
- panel.querySelector('.close-panel').focus({preventScroll:true});
+cameraButton.addEventListener('click',()=>{if(mode!=='camera'||sourceState==='error')source('camera')});
+demoButton.addEventListener('click',()=>{if(mode!=='demo'||sourceState==='error')source('demo')});
+const afterFade=element=>Promise.all(element.getAnimations().filter(animation=>animation.transitionProperty==='opacity').map(animation=>animation.finished.catch(()=>{})));
+async function setPreferences(open){
+ desiredPreferences=open;const token=++preferencesRevision;
+ more.setAttribute('aria-expanded',String(open));
+ contentBody.classList.add('view-fading');contentBody.inert=true;
+ await afterFade(contentBody);if(token!==preferencesRevision)return;
+ const restoreFocus=preferences.contains(document.activeElement);
+ story.hidden=open;preferences.hidden=!open;contentBody.scrollTop=0;contentBody.inert=false;
+ // Keep the chosen scene playing while its settings are being adjusted.
+ video.loop=mode==='demo'&&!isImage()&&(!autoRotate.checked||open)&&!playback.seconds;
+ if(open)document.querySelector('#'+selectedTab).focus({preventScroll:true});
+ else if(restoreFocus)more.focus({preventScroll:true});
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===preferencesRevision)contentBody.classList.remove('view-fading')}));
 }
-function closePanel(){
- if(!activePanel)return;
- const previous=activePanel;document.querySelector('#'+previous+'-view').hidden=true;activePanel=null;
- controlsToggle.inert=false;videoBottom.inert=false;recognition.inert=false;
- document.querySelector('#'+previous).setAttribute('aria-expanded','false');document.querySelector('#'+previous).focus({preventScroll:true});
- // Resume the same source without reopening the camera or restarting the scene.
- lastTrackingUpdate=0;lastFrame=-1;imagePending=true;imageAnalyzed=false;
- if(sourceState==='ready'&&!isImage()){
-  if(video.ended)finishPlayback();else video.play().catch(()=>source(mode));
- }
- refreshStatus();
+async function selectTab(next){
+ if(next===selectedTab)return;
+ selectedTab=next;const token=++tabRevision;
+ for(const key of ['settings','about']){const tab=document.querySelector('#'+key);tab.setAttribute('aria-selected',String(key===next));tab.tabIndex=key===next?0:-1}
+ preferencesBody.classList.add('view-fading');preferencesBody.inert=true;
+ await afterFade(preferencesBody);if(token!==tabRevision)return;
+ document.querySelector('#settings-view').hidden=next!=='settings';document.querySelector('#about-view').hidden=next!=='about';
+ preferencesBody.scrollTop=0;preferencesBody.inert=false;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===tabRevision)preferencesBody.classList.remove('view-fading')}));
 }
-for(const key of ['settings','about'])document.querySelector('#'+key).addEventListener('click',()=>openPanel(key));
-for(const button of document.querySelectorAll('.close-panel'))button.addEventListener('click',closePanel);
-stage.addEventListener('keydown',event=>{
- if(event.key==='Escape'){
-  if(activePanel){event.preventDefault();closePanel()}
-  else if(sourceTray.classList.contains('visible')){event.preventDefault();controlsToggle.focus({preventScroll:true});showControls(false)}
- }
- if(event.key==='Tab'&&activePanel){
-  const panel=document.querySelector('#'+activePanel+'-view');
-  const focusable=[...panel.querySelectorAll('button,input,a[href],[tabindex="0"]')].filter(el=>!el.disabled&&el.getClientRects().length);
-  const first=focusable[0],last=focusable.at(-1);
-  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
-  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
- }
+more.addEventListener('click',()=>setPreferences(!desiredPreferences));
+for(const key of ['settings','about'])document.querySelector('#'+key).addEventListener('click',()=>selectTab(key));
+document.querySelector('.preferences-tabs').addEventListener('keydown',event=>{
+ if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+ event.preventDefault();const next=event.key==='Home'?'settings':event.key==='End'?'about':selectedTab==='settings'?'about':'settings';
+ document.querySelector('#'+next).focus();selectTab(next);
+});
+document.addEventListener('keydown',event=>{
+ if(event.key!=='Escape')return;
+ if(sourceTray.classList.contains('visible')){event.preventDefault();controlsToggle.focus({preventScroll:true});showControls(false)}
+ else if(desiredPreferences){event.preventDefault();setPreferences(false);more.focus({preventScroll:true})}
 });
 retry.addEventListener('click',()=>modelState==='error'?location.reload():source(mode));
 document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear();detectionActive=false}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
