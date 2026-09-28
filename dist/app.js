@@ -10,22 +10,22 @@ const statusText=document.querySelector('#status-text'), dot=document.querySelec
 const rows=document.querySelector('#rows'), narrativeTitle=document.querySelector('#narrative-title');
 const flip=document.querySelector('#flip-camera'),clipSelector=document.querySelector('#demo-clips');
 const detectionOptions=document.querySelector('#detection-options'), autoRotate=document.querySelector('#auto-rotate');
-const stage=document.querySelector('.stage'),story=document.querySelector('.recognition-content');
+const story=document.querySelector('.recognition-content');
 const contentBody=document.querySelector('#content-body'),preferences=document.querySelector('#preferences'),preferencesBody=document.querySelector('#preferences-body'),more=document.querySelector('#more'),demoButton=document.querySelector('#demo');
-const sourceTray=document.querySelector('#source-tray'),controlsToggle=document.querySelector('#controls-toggle'),cameraButton=document.querySelector('#camera');
+const demoDock=document.querySelector('#demo-dock'),cameraButton=document.querySelector('#camera');
 const demoFilters=new Map(DEMOS.map(d=>[d.key,[...d.items]]));
 let cameraFilters=[...GROUPS.produce.items,...GROUPS.people.items];
 let activeKeys=[...DEMOS[0].items];
 const requestedSample=new URL(location.href).searchParams.get('sample');
 let selectedDemo=DEMOS.find(d=>d.key===(requestedSample==='curbside-photo'?'curbside':requestedSample))?.key||DEMOS[0].key, facing='environment', cameraDevices=[], activeDeviceId='';
-let viewRevision=0,sceneTransition=false,hasDetected=false;
+let viewRevision=0,hasDetected=false;
 let desiredPreferences=false,preferencesRevision=0,selectedTab='settings',tabRevision=0;
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;
 let detectionFPS=8,lastTrackingUpdate=0;
 const isImage=()=>mode==='demo'&&DEMOS.find(d=>d.key===selectedDemo).type==='image';
 const sampleKind=()=>isImage()?'image':'video';
-let modelState='downloading', sourceState='loading', sourceError='', detectionActive=false;
+let modelState='downloading', sourceState='loading', sourceError='';
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{alpha:false});
 const sceneButtons=new Map();
 for(const clip of DEMOS){
@@ -49,7 +49,7 @@ for(const [key,group] of Object.entries(GROUPS)){
  input.addEventListener('change',()=>{
   const keys=[...detectionOptions.querySelectorAll('input:checked')].filter(i=>!i.closest('label').hidden).flatMap(i=>GROUPS[i.dataset.group].items);
   if(mode==='camera')cameraFilters=keys;else demoFilters.set(selectedDemo,keys);
-  configureScene();sceneTransition=false;viewRevision++;lastFrame=-1;detectionActive=false;imagePending=true;imageAnalyzed=false;clear();refreshStatus();
+  configureScene();viewRevision++;lastFrame=-1;imagePending=true;imageAnalyzed=false;clear();refreshStatus();
  });
 }
 function configureScene(immediate=false){
@@ -60,6 +60,7 @@ function configureScene(immediate=false){
  video.loop=mode==='demo'&&!isImage()&&(!autoRotate.checked||desiredPreferences)&&!playback.seconds;
  for(const [key,{button,progress}] of sceneButtons){const selected=mode==='demo'&&key===selectedDemo;button.setAttribute('aria-pressed',String(selected));if(!selected)progress.style.transform='scaleX(0)'}
  cameraButton.setAttribute('aria-pressed',String(mode==='camera'));demoButton.setAttribute('aria-pressed',String(mode==='demo'));
+ demoDock.hidden=mode!=='demo';
  updateProgress();
  for(const label of detectionOptions.querySelectorAll('label')){
   const key=label.dataset.group;label.hidden=mode==='camera'&&key==='cars';
@@ -149,14 +150,14 @@ async function loop(now){
  if(isImage()){if(!imagePending)return;imagePending=false}
  else if(video.paused||video.seeking||video.readyState<2||now-lastInference<1000/detectionFPS||lastFrame===video.currentTime)return;
  busy=true;const token=generation,revision=viewRevision;lastInference=now;lastFrame=video.currentTime;
- try{const found=await detect();if(token===generation&&revision===viewRevision){update(found,isImage());detectionActive=true;hasDetected=true;sceneTransition=false;if(isImage())imageAnalyzed=true;refreshStatus()}}
- catch(e){if(token!==generation||revision!==viewRevision)return;console.error(e);failed=true;detectionActive=false;clear();refreshStatus()}
+ try{const found=await detect();if(token===generation&&revision===viewRevision){update(found,isImage());hasDetected=true;if(isImage())imageAnalyzed=true;refreshStatus()}}
+ catch(e){if(token!==generation||revision!==viewRevision)return;console.error(e);failed=true;clear();refreshStatus()}
  finally{busy=false}
 }
 async function source(next, switching=false, clipKey=selectedDemo){
  const hasPrevious=Boolean(video.currentSrc||stream||sampleImage.getAttribute('src'));
  clearTimeout(endedTimer);
- const token=++generation;ready=false;sceneTransition=true;sourceState='loading';sourceError='';failed=false;detectionActive=false;video.pause();
+ const token=++generation;ready=false;sourceState='loading';sourceError='';failed=false;video.pause();
  // Freeze the outgoing scene, including its boxes and story, until fully faded out.
  picture.classList.add('fading');story.classList.add('fading');refreshStatus();
  if(hasPrevious)await Promise.all(picture.getAnimations().filter(animation=>animation.transitionProperty==='opacity').map(animation=>animation.finished.catch(()=>{})));
@@ -184,7 +185,7 @@ async function source(next, switching=false, clipKey=selectedDemo){
    const settings=stream.getVideoTracks()[0].getSettings();activeDeviceId=settings.deviceId;facing=settings.facingMode||facing;
    cameraDevices=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
    if(token!==generation)return;
-   stream.getVideoTracks()[0].addEventListener('ended',()=>{if(token===generation){ready=false;sourceState='error';sourceError='Camera unavailable 😕';detectionActive=false;clear();refreshStatus()}});
+   stream.getVideoTracks()[0].addEventListener('ended',()=>{if(token===generation){ready=false;sourceState='error';sourceError='Camera unavailable 😕';clear();refreshStatus()}});
   }else if(isImage()){
    const clip=DEMOS.find(d=>d.key===selectedDemo);
    sampleImage.alt=clip.label;sampleImage.src=clip.src;await sampleImage.decode();
@@ -193,11 +194,10 @@ async function source(next, switching=false, clipKey=selectedDemo){
    const clip=DEMOS.find(d=>d.key===selectedDemo);video.poster=clip.poster;video.src=clip.src;
   }
   if(!isImage())await video.play();if(token!==generation)return;
-  if(!activeKeys.length)sceneTransition=false;
   sourceState='ready';ready=modelState==='ready';flip.disabled=cameraDevices.length<2;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===generation){picture.classList.remove('fading');story.classList.remove('fading')}}));refreshStatus();
  }catch(e){
-  if(token!==generation)return;picture.classList.remove('fading');story.classList.remove('fading');sceneTransition=false;flip.disabled=cameraDevices.length<2;sourceState='error';ready=false;
+  if(token!==generation)return;picture.classList.remove('fading');story.classList.remove('fading');flip.disabled=cameraDevices.length<2;sourceState='error';ready=false;
   sourceError=next!=='camera'?`Sample ${sampleKind()} didn’t load 😕`:e.name==='NotAllowedError'?'Camera access declined 😕':e.name==='NotFoundError'?'No camera detected 😕':'Camera unavailable 😕';
   clear();refreshStatus();console.error(e);
  }
@@ -240,27 +240,9 @@ function finishPlayback(){
 }
 autoRotate.addEventListener('change',()=>{configureScene();if(video.ended)finishPlayback()});
 video.addEventListener('ended',finishPlayback);
-video.addEventListener('seeking',()=>{if(isImage())return;playback.reset();viewRevision++;clear();lastFrame=-1;detectionActive=false;refreshStatus()});
-for(const event of ['pause','playing','waiting','seeked'])video.addEventListener(event,()=>{if(isImage())return;if(event==='waiting')detectionActive=false;refreshStatus()});
-video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Sample video didn’t load 😕';detectionActive=false;clear();refreshStatus()}});
-let pointerInStage=false;
-function showControls(visible){
- const wasVisible=sourceTray.classList.contains('visible');
- sourceTray.classList.toggle('visible',visible);sourceTray.inert=!visible;
- controlsToggle.setAttribute('aria-expanded',String(visible));controlsToggle.setAttribute('aria-label',visible?'Hide scene controls':'Show scene controls');
- if(visible&&!wasVisible){
-  const selected=sceneButtons.get(selectedDemo)?.button;
-  if(selected){const left=selected.offsetLeft-clipSelector.offsetLeft;clipSelector.scrollTo({left:Math.max(0,left-(clipSelector.clientWidth-selected.offsetWidth)/2),behavior:'instant'})}
- }
-}
-let touchControl=false;
-controlsToggle.addEventListener('pointerdown',event=>{touchControl=event.pointerType==='touch'||event.pointerType==='pen'});
-controlsToggle.addEventListener('click',event=>{const touch=event.pointerType==='touch'||event.pointerType==='pen'||(event.detail>0&&touchControl);showControls(touch?!sourceTray.classList.contains('visible'):true)});
-stage.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'){pointerInStage=true;showControls(true)}});
-stage.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'){pointerInStage=false;if(!sourceTray.querySelector(':focus-visible'))showControls(false)}});
-stage.addEventListener('focusin',event=>{if(sourceTray.contains(event.target)||(event.target===controlsToggle&&controlsToggle.matches(':focus-visible')))showControls(true)});
-stage.addEventListener('focusout',()=>requestAnimationFrame(()=>{if(!pointerInStage&&!sourceTray.contains(document.activeElement)&&document.activeElement!==controlsToggle)showControls(false)}));
-document.addEventListener('pointerdown',event=>{if(event.pointerType==='touch'&&!stage.contains(event.target))showControls(false)});
+video.addEventListener('seeking',()=>{if(isImage())return;playback.reset();viewRevision++;clear();lastFrame=-1;refreshStatus()});
+for(const event of ['pause','playing','waiting','seeked'])video.addEventListener(event,()=>{if(!isImage())refreshStatus()});
+video.addEventListener('error',()=>{if(!isImage()&&video.getAttribute('src')&&video.error){ready=false;sourceState='error';sourceError='Sample video didn’t load 😕';clear();refreshStatus()}});
 cameraButton.addEventListener('click',()=>{if(mode!=='camera'||sourceState==='error')source('camera')});
 demoButton.addEventListener('click',()=>{if(mode!=='demo'||sourceState==='error')source('demo')});
 const afterFade=element=>Promise.all(element.getAnimations().filter(animation=>animation.transitionProperty==='opacity').map(animation=>animation.finished.catch(()=>{})));
@@ -296,11 +278,10 @@ document.querySelector('.preferences-tabs').addEventListener('keydown',event=>{
 });
 document.addEventListener('keydown',event=>{
  if(event.key!=='Escape')return;
- if(sourceTray.classList.contains('visible')){event.preventDefault();controlsToggle.focus({preventScroll:true});showControls(false)}
- else if(desiredPreferences){event.preventDefault();setPreferences(false);more.focus({preventScroll:true})}
+ if(desiredPreferences){event.preventDefault();setPreferences(false);more.focus({preventScroll:true})}
 });
 retry.addEventListener('click',()=>modelState==='error'?location.reload():source(mode));
-document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear();detectionActive=false}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear()}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
 window.addEventListener('pagehide',()=>{clearTimeout(endedTimer);playback.reset();generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});
 async function init(){
  source('demo');
