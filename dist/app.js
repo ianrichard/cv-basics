@@ -39,6 +39,8 @@ let revealAfter=0;const reducedMotion=matchMedia('(prefers-reduced-motion: reduc
 const isImage=()=>mode==='demo'&&DEMOS.find(d=>d.key===selectedDemo).type==='image';
 const sampleKind=()=>isImage()?'image':'video';
 let modelState='downloading', sourceState='loading', sourceError='';
+// Only announce model loading on a real download (not yet cached offline) or when a cached load stalls.
+let announceModelLoading=false;
 const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{alpha:false});
 const sceneButtons=new Map();
 for(const clip of DEMOS){
@@ -87,7 +89,7 @@ function configureScene(immediate=false){
  }
 }
 // One text node, one pending destination: higher-priority state always wins at swap time.
-let desiredStatus={text:'Loading computer vision to your device',canRetry:false},statusFading=false;
+let desiredStatus={text:'',canRetry:false},statusFading=false;
 let desiredNarrative='',narrativeFading=false;
 function narrative(text){
  desiredNarrative=text;
@@ -116,7 +118,7 @@ function refreshStatus(){
  else if(failed){text='Computer vision stopped. Please try again.';canRetry=true}
  else if(sourceState==='error'){text=sourceError;canRetry=true}
  else if(sourceState==='permission'){text='Accept camera permission'}
- else if(modelState!=='ready'){text='Loading computer vision to your device'}
+ else if(modelState!=='ready'&&announceModelLoading){text='Loading computer vision to your device'}
  const presentation=JSON.stringify([text,canRetry]);
  if(presentation===lastPresentation)return;lastPresentation=presentation;
  status(text,canRetry);
@@ -311,12 +313,16 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.r
 window.addEventListener('pagehide',()=>{clearTimeout(endedTimer);playback.reset();generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});
 async function init(){
  source('demo');
+ const announce=()=>{if(modelState!=='ready'&&modelState!=='error'){announceModelLoading=true;refreshStatus()}};
+ // Grace periods avoid flashing the message on fast loads: short for a real download, long for a cached load.
+ let stalled;
+ (window.caches?caches.match('model/model.json'):Promise.resolve()).catch(()=>{}).then(cached=>{if(modelState!=='ready')stalled=setTimeout(announce,cached?5000:800)});
  try{
   if(!window.tf)throw new Error('Runtime missing');if(!await tf.setBackend('webgl'))throw new Error('WebGL unavailable');await tf.ready();if(tf.getBackend()!=='webgl')throw new Error('WebGL unavailable');
   model=await tf.loadGraphModel('model/model.json');modelState='preparing';refreshStatus();
   const warm=tf.zeros([1,300,300,3],'int32');let result;
   try{result=await model.executeAsync(warm);await Promise.all(result.map(t=>t.data()))}finally{warm.dispose();if(result)tf.dispose(result)}
-  modelState='ready';ready=sourceState==='ready';refreshStatus();requestAnimationFrame(loop);
+  modelState='ready';clearTimeout(stalled);ready=sourceState==='ready';refreshStatus();requestAnimationFrame(loop);
  }catch(e){console.error(e);modelState='error';ready=false;refreshStatus()}
 }
 if('serviceWorker' in navigator){
