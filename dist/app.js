@@ -1,6 +1,7 @@
 import {ITEMS, ENABLED, DEMOS, GROUPS} from './config.js';
 import {coverCrop} from './geometry.js';
 import {PlaybackDelay} from './playback-delay.js';
+import {reveal} from './tile-reveal.js';
 const video=document.querySelector('#video'), picture=document.querySelector('#picture'), overlay=document.querySelector('#overlays');
 const sampleImage=document.querySelector('#sample-image');
 const retry=document.querySelector('#retry');
@@ -33,6 +34,8 @@ let desiredPreferences=false,preferencesRevision=0,selectedTab='settings',tabRev
 let model, stream, mode='demo', generation=0, ready=false, busy=false, tracks=[], nextId=0, lastFrame=-1, lastInference=0, failed=false;
 let imagePending=false,imageAnalyzed=false;
 let detectionFPS=8,lastTrackingUpdate=0;
+// Demo boxes stay hidden for the first second of a scene, then tile in as each is first shown.
+let revealAfter=0;const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 const isImage=()=>mode==='demo'&&DEMOS.find(d=>d.key===selectedDemo).type==='image';
 const sampleKind=()=>isImage()?'image':'video';
 let modelState='downloading', sourceState='loading', sourceError='';
@@ -148,7 +151,10 @@ function update(detections,still=false){
  }
  // Fresh detections win over linger: never count unmatched echoes alongside them.
  tracks=tracks.filter(t=>{if(available.has(t)&&(!t.confirmed||observedKeys.has(t.key)||now-t.seen>ITEMS[t.key].linger)){t.el.remove();return false}return true});
- for(const t of tracks){const [x,y,w,h]=t.box;t.el.hidden=!t.confirmed;Object.assign(t.el.style,{left:`${x*100}%`,top:`${y*100}%`,width:`${w*100}%`,height:`${h*100}%`})}
+ const revealing=mode==='demo'&&!reducedMotion.matches;
+ for(const t of tracks){const [x,y,w,h]=t.box;const shown=t.confirmed&&(!revealing||now>=revealAfter);t.el.hidden=!shown;
+  if(shown&&!t.revealed){t.revealed=true;if(revealing)reveal(t.el,ITEMS[t.key].color,{fillOpacity:fillControl.checked?fillOpacity.value/100:0})}
+  Object.assign(t.el.style,{left:`${x*100}%`,top:`${y*100}%`,width:`${w*100}%`,height:`${h*100}%`})}
  renderRecognition();
 }
 async function detect(){if(tf.getBackend()!=='webgl')throw new Error('GPU acceleration is unavailable.');const media=isImage()?sampleImage:video;const crop=isImage()?{x:0,y:0,width:sampleImage.naturalWidth,height:sampleImage.naturalHeight}:coverCrop(video.videoWidth,video.videoHeight,picture.clientWidth,picture.clientHeight);const scale=Math.min(1,640/Math.max(crop.width,crop.height));canvas.width=Math.max(1,Math.round(crop.width*scale));canvas.height=Math.max(1,Math.round(crop.height*scale));ctx.drawImage(media,crop.x,crop.y,crop.width,crop.height,0,0,canvas.width,canvas.height);let input,result;try{input=tf.tidy(()=>tf.browser.fromPixels(canvas).expandDims(0));result=await model.executeAsync(input);const [scores,boxes]=await Promise.all([result[0].data(),result[1].data()]);const n=result[0].shape[1],classes=result[0].shape[2],candidates=[];for(let i=0;i<n;i++){let max=0,category=-1;for(let c=0;c<classes;c++){const s=scores[i*classes+c];if(s>max){max=s;category=c+1}}const key=activeKeys.find(k=>ITEMS[k].id===category);if(!key||max<ITEMS[key].trackingThreshold)continue;const b=i*4,y=Math.max(0,boxes[b]),x=Math.max(0,boxes[b+1]),y2=Math.min(1,boxes[b+2]),x2=Math.min(1,boxes[b+3]);if(x2>x&&y2>y)candidates.push({key,score:max,box:[x,y,x2-x,y2-y]})}candidates.sort((a,b)=>b.score-a.score);const selected=[];for(const c of candidates){if(!selected.some(s=>s.key===c.key&&iou(s.box,c.box)>.45))selected.push(c);if(selected.length>=40)break}return selected}finally{input?.dispose();if(result)tf.dispose(result)}}
@@ -205,8 +211,9 @@ async function source(next, switching=false, clipKey=selectedDemo){
   }else{
    const clip=DEMOS.find(d=>d.key===selectedDemo);video.poster=clip.poster;video.src=clip.src;
   }
-  if(!isImage())await video.play();if(token!==generation)return;
-  sourceState='ready';ready=modelState==='ready';flip.disabled=cameraDevices.length<2;
+  // Browsers refuse play() in hidden tabs or under autoplay/power rules; that's a paused source, not a failed one.
+  if(!isImage())await video.play().catch(e=>{if(!['AbortError','NotAllowedError'].includes(e.name))throw e});if(token!==generation)return;
+  sourceState='ready';ready=modelState==='ready';revealAfter=performance.now()+1000;flip.disabled=cameraDevices.length<2;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(token===generation){picture.classList.remove('fading');story.classList.remove('fading')}}));refreshStatus();
  }catch(e){
   if(token!==generation)return;picture.classList.remove('fading');story.classList.remove('fading');flip.disabled=cameraDevices.length<2;sourceState='error';ready=false;
@@ -297,7 +304,10 @@ document.querySelector('.preferences-tabs').addEventListener('keydown',event=>{
  document.querySelector('#'+next).focus();selectTab(next);
 });
 retry.addEventListener('click',()=>modelState==='error'?location.reload():source(mode));
-document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear()}else{lastFrame=-1;imagePending=true;imageAnalyzed=false}refreshStatus()});
+// Resume anything the browser paused or refused to autoplay once the page is visible or the viewer interacts.
+function resumePlayback(){if(!isImage()&&sourceState==='ready'&&!document.hidden&&video.paused&&!video.ended)video.play().catch(()=>{})}
+for(const event of ['pointerdown','keydown'])document.addEventListener(event,resumePlayback,{passive:true});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){playback.reset();clear()}else{lastFrame=-1;imagePending=true;imageAnalyzed=false;resumePlayback()}refreshStatus()});
 window.addEventListener('pagehide',()=>{clearTimeout(endedTimer);playback.reset();generation++;ready=false;stream?.getTracks().forEach(t=>t.stop())});
 async function init(){
  source('demo');

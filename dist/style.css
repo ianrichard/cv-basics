@@ -7,7 +7,10 @@
 #picture{position:absolute;inset:0;opacity:1;transition:opacity 500ms ease-in-out}#picture.fading{opacity:0}
 video,#sample-image,#delayed-video{display:block;width:100%;height:100%;object-fit:cover}#sample-image{object-fit:contain}#delayed-video{position:absolute;inset:0}
 #overlays{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.box{position:absolute;border:3px solid var(--color);border-radius:17px;background:color-mix(in srgb,var(--color) var(--box-fill-opacity,40%),transparent);transition:left var(--box-duration,125ms) linear,top var(--box-duration,125ms) linear,width var(--box-duration,125ms) linear,height var(--box-duration,125ms) linear;will-change:left,top,width,height}
+/* Settled boxes keep the reveal's fixed 8 px tile grid: cells crop at the edges as boxes resize, never scale. */
+.box{position:absolute;border:3px solid color-mix(in srgb,var(--color) 90%,transparent);border-radius:17px;background:conic-gradient(from 90deg at 1px 1px,color-mix(in srgb,var(--color) var(--box-fill-opacity,12%),transparent) 90deg,transparent 0) 0 0/8px 8px padding-box;transition:left var(--box-duration,125ms) linear,top var(--box-duration,125ms) linear,width var(--box-duration,125ms) linear,height var(--box-duration,125ms) linear,border-color .25s,box-shadow .25s;will-change:left,top,width,height}
+#overlays .box.revealing{background:transparent;border-color:transparent;box-shadow:none}
+.tile-reveal{position:absolute;left:-3px;top:-3px;width:calc(100% + 6px);height:calc(100% + 6px);transition:opacity .25s}
 #overlays.glow-enabled .box{box-shadow:0 0 18px -6px var(--color)}#overlays.fill-disabled .box{background:transparent}
 .recognition{grid-area:story;min-width:0;height:auto;min-height:0;padding-bottom:calc(var(--dock-height) + 16px);display:flex;flex-direction:column;container-type:inline-size}
 .content-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;opacity:1}
